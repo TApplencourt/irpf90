@@ -12,15 +12,12 @@ END_PROVIDER
 
 BEGIN_PROVIDER [ integer, u1 ]
   integer :: fu
-! u1 = fu(d1,d2)
-  u1 = d1+d2+1
+  u1 = fu(d1,d2)
 END_PROVIDER
 
 BEGIN_PROVIDER [ integer, u2 ]
   integer :: fu
-! u2 = fu(d3,d4)
-  u2 = d3+d4+1
-  ASSERT (u2 > d3)
+  u2 = fu(d3,d4)
 END_PROVIDER
 
 integer function fu(x,y)
