@@ -58,12 +58,17 @@ subroutine irp_enter(irp_where)
  ithread = 0
 !$ ithread = omp_get_thread_num()
 $1
+"""
+
+  if not command_line.do_openmp:
+    txt += """
 if (ithread /= 0) then
    print *, 'Error: Provider is called by thread', ithread
    call irp_trace
    stop 1
 endif
 """
+
   if command_line.do_memory:
       txt+="""
  if (.not.alloc) then
