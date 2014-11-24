@@ -100,7 +100,6 @@ def dimsize(x):
   buffer = x.split(':')
   if len(buffer) == 1:
     return x
-    buffer = map(strip,buffer)
   else:
     assert len(buffer) == 2
     size = ""

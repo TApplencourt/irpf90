@@ -139,14 +139,16 @@ def do_print_subroutines(sub):
 def run():
   import parsed_text
   import os,sys
-  if os.fork() == 0:
+  pid1 = os.fork()
+  if pid1 == 0:
     for v in variables.values():
       do_print(v)
     for s in subroutines.values():
       do_print_subroutines(s)
     sys.exit(0)
 
-  if os.fork() == 0:
+  pid2 = os.fork()
+  if pid2 == 0:
     tags = []
     l = variables.keys()
     file = open("irpf90_entities","w")
@@ -168,6 +170,9 @@ def run():
       file.write(line)
     file.close()
     sys.exit(0)
+
+  os.waitpid(pid1,0)
+  os.waitpid(pid2,0)
 
 ######################################################################
 if __name__ == '__main__':

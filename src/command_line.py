@@ -250,7 +250,7 @@ command_line = CommandLine()
 def print_options():
   keys = options.keys()
   keys.sort()
-  import subprocess, threading
+  import subprocess
   for k in keys:
     description = options[k][1]
     p1 = subprocess.Popen(["fold", "-s", "-w", "40"],stdout=subprocess.PIPE,stdin=subprocess.PIPE)
