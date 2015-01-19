@@ -93,6 +93,11 @@ def do_print(var):
     var.needed_by.sort()
     print >>file, ".SH Needed by"
     process_deps(file,var.needed_by)
+  print >>file, ".SH Instability factor"
+  fo = len(var.children)
+  fi = len(var.parents)
+  print >>file, 100.* (fi / (fi+fo+.000001) ), "%"
+  print >>file, ".br"
   file.close()
 
 ######################################################################
@@ -133,6 +138,11 @@ def do_print_subroutines(sub):
     sub.touches.sort()
     print >>file, ".SH Touches"
     process_deps(file,sub.touches)
+  print >>file, ".SH Instability factor"
+  fo = len(sub.needs)+len(sub.calls)+len(sub.touches)
+  fi = len(sub.called_by)
+  print >>file, 100.* (fi / (fi+fo+.000001) ), "%"
+  print >>file, ".br"
   file.close()
 
 ######################################################################
