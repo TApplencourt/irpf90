@@ -47,7 +47,7 @@ def create():
   file = open(FILENAME,"w")
   t = """IRPF90 = irpf90  #-a -d
 FC     = gfortran
-FCFLAGS= -O2
+FCFLAGS= -O2 -ffree-line-length-none
 
 SRC=
 OBJ=
