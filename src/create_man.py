@@ -36,8 +36,8 @@ from util import *
 def do_print_short(file,var):
   assert type(var) == Variable
   print >>file, "%s : %s :: %s %s"%( \
-   var.line.filename[0].ljust(25),
-   var.type.ljust(25),
+   var.line.filename[0].ljust(35),
+   var.type.ljust(30),
    var.name.ljust(25),
    build_dim(var.dim) )
 
