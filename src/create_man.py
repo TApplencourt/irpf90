@@ -96,7 +96,7 @@ def do_print(var):
   print >>file, ".SH Instability factor"
   fo = len(var.children)
   fi = len(var.parents)
-  print >>file, 100.* (fi / (fi+fo+.000001) ), "%"
+  print >>file, "%5.1f %%"%(100.* (fi / (fi+fo+.000001) ))
   print >>file, ".br"
   file.close()
 
@@ -141,7 +141,7 @@ def do_print_subroutines(sub):
   print >>file, ".SH Instability factor"
   fo = len(sub.needs)+len(sub.calls)+len(sub.touches)
   fi = len(sub.called_by)
-  print >>file, 100.* (fi / (fi+fo+.000001) ), "%"
+  print >>file, "%5.1f %%"%(100.* (fi / (fi+fo+.000001) ))
   print >>file, ".br"
   file.close()
 
