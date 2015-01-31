@@ -370,5 +370,7 @@ fun! ReadMan()
   :exe ":!irpman " . s:man_word 
 endfun
 map K :call ReadMan()<CR>
+set equalprg=irpf90_indent
+
 
 " vim: ts=8 tw=132
