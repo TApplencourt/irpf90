@@ -48,7 +48,6 @@ options['p'] = [ 'preprocess'   , 'Prints a preprocessed file to standard output
 options['r'] = [ 'no_directives', 'Ignore all compiler directives !DEC$ and !DIR$', 0 ]
 options['s'] = [ 'substitute'   , 'Substitute values in do loops for generating specific optimized code.', 1 ]
 options['t'] = [ 'touch'        , 'Display which entities are touched when touching the variable given as an argument.', 1 ]
-options['u'] = [ 'unused'       , 'Print unused providers', 0 ]
 options['v'] = [ 'version'      , 'Prints version of irpf90', 0 ]
 options['z'] = [ 'openmp'       , 'Activate for OpenMP code', 0 ]
 
