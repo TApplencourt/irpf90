@@ -136,8 +136,8 @@ subroutine irp_print_timer()
  call profile_sort()
  print '(A24,A8,A17,A20,A13,A20)', '', 'N.Calls', 'Tot Cycles', 'Avg Cycles', &
                           'Tot Secs', 'Avg Secs'
-   print '(A)', '----------------------------------------------'// &
-                '----------------------------------------------'
+   print '(A)', '---------------------------------------------------'// &
+                '---------------------------------------------------'
  do ii=1,%(n)d
   i = irp_order(ii)
   if (irp_profile(3,i) > 0.) then
