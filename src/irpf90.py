@@ -68,7 +68,7 @@ def main():
       if var not in variables:
         print "%s is not an IRP entity"%(var,)
       else:
-        print "%s touches the following entities:"%(var,)
+        print "Touching %s invalidates the following entities:"%(var,)
         parents = variables[var].parents
         parents.sort()
         for x in parents:
