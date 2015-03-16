@@ -146,11 +146,11 @@ end subroutine
  endif
  stack_index(ithread+1) = mod(stack_index(ithread+1)+1,STACKMAX)
  irp_stack(stack_index(ithread+1),ithread+1) = irp_where""")
-    if command_line.do_memory:
-      txt+="""
-  print *, 'Allocating irp_stack(',STACKMAX,','nthread,')'
-  print *, 'Allocating irp_cpu(',STACKMAX,','nthread,')'
-  print *, 'Allocating stack_index(',nthread,')'"""
+#    if command_line.do_memory:
+#      txt+="""
+#  print *, 'Allocating irp_stack(',STACKMAX,','nthread,')'
+#  print *, 'Allocating irp_cpu(',STACKMAX,','nthread,')'
+#  print *, 'Allocating stack_index(',nthread,')'"""
   else:
     txt = txt.replace("$1","")
 
