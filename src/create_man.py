@@ -36,8 +36,8 @@ from util import *
 def do_print_short(file,var):
   assert type(var) == Variable
   print >>file, "%s : %s :: %s %s"%( \
-   var.line.filename[0].ljust(25),
-   var.type.ljust(25),
+   var.line.filename[0].ljust(35),
+   var.type.ljust(30),
    var.name.ljust(25),
    build_dim(var.dim) )
 
@@ -93,6 +93,11 @@ def do_print(var):
     var.needed_by.sort()
     print >>file, ".SH Needed by"
     process_deps(file,var.needed_by)
+  print >>file, ".SH Instability factor"
+  fo = len(var.children)
+  fi = len(var.parents)
+  print >>file, "%5.1f %%"%(100.* (fi / (fi+fo+.000001) ))
+  print >>file, ".br"
   file.close()
 
 ######################################################################
@@ -133,6 +138,11 @@ def do_print_subroutines(sub):
     sub.touches.sort()
     print >>file, ".SH Touches"
     process_deps(file,sub.touches)
+  print >>file, ".SH Instability factor"
+  fo = len(sub.needs)+len(sub.calls)+len(sub.touches)
+  fi = len(sub.called_by)
+  print >>file, "%5.1f %%"%(100.* (fi / (fi+fo+.000001) ))
+  print >>file, ".br"
   file.close()
 
 ######################################################################

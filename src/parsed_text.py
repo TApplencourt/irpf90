@@ -168,6 +168,7 @@ def get_parsed_text():
         for v in l:
           if v not in variables:
             error.fail(line,"Variable %s is unknown"%(v))
+        append( (l,Provide(line.i,"",line.filename)) )
         append( (l,Simple_line(line.i,"!%s"%(line.text),line.filename)) )
       elif type(line) == NoDep:
         l = line.lower.split()[1:]
@@ -376,7 +377,7 @@ def move_variables():
            or old_elsevars != []:
             error.fail(line,"End if missing")
           varlist = []
-        elif type(line) == Provide_all:
+        elif type(line) in (Provide,Provide_all):
           append( (vars,line) )
         else:
           varlist += vars

@@ -1,5 +1,5 @@
 IRPF90 = python ../src/irpf90.py -I input -a -d
-FC     = gfortran
+FC     = ifort -profile-functions
 FCFLAGS= -O2
 
 SRC=

@@ -125,6 +125,7 @@ class Sub(object):
 ######################################################################
 if __name__ == '__main__':
   from preprocessed_text import preprocessed_text
+  from variables import variables
   from subroutines import subroutines
-  print subroutines['run'].needs
-  print subroutines['run'].to_provide
+  print map(lambda x: variables[x].needs, subroutines['full_ci'].needs)
+  print subroutines['full_ci'].calls
