@@ -91,6 +91,7 @@ def run():
     result += "\n"
     result += "SRC += %sirp_stack.irp.F90"%(irpdir)
     result += " %sirp_touches.irp.F90"%(irpdir)
+    result += " %sirp_checkpoint.irp.F90"%(irpdir)
     if command_line.do_openmp:
       result += " %sirp_locks.irp.F90"%(irpdir)
     if command_line.do_profile:
@@ -107,7 +108,7 @@ def run():
         result += " %s%s.irp.module.o"%(irpdir,m.filename)
     print >>file, result
 
-    print >>file, "OBJ1 = $(OBJ_IRP) $(OBJ) %sirp_touches.irp.o"%(irpdir),
+    print >>file, "OBJ1 = $(OBJ_IRP) $(OBJ) %sirp_touches.irp.o %sirp_checkpoint.irp.o"%(irpdir,irpdir),
     if command_line.do_profile:
       print >>file, " %sirp_profile.irp.o"%(irpdir), " irp_rdtsc.o",
     if command_line.do_codelet:
@@ -150,7 +151,7 @@ def run():
       print >>file, filename," ".join(mds)," ".join(m.includes)
       if not m.is_main:
         buffer += "\t - @echo '"+filename+" ".join(mds)+"' >> %sdist_Makefile\n"%(irpdir)
-    print >>file, "%sirp_touches.irp.o: $(OBJ) "%(irpdir),
+    print >>file, "%sirp_touches.irp.o %sirp_checkpoint.irp.o: $(OBJ) "%(irpdir,irpdir),
     mds = filter(lambda x: not x.is_main,mod)
     mds = map(lambda x: " %s%s.irp.o %s%s.irp.o"%(irpdir,x.filename,irpdir,x.filename),mds)
     print >>file," ".join(mds)
@@ -161,33 +162,6 @@ def run():
       print >>file, "%sirp_locks.irp.o:"%(irpdir),
       print >>file," ".join(mds)
     
-
-#   print >>file, "%sdist_Makefile:"%(irpdir)
-#   print >>file, "\t- @echo FC=$(FC) > %sdist_Makefile"%(irpdir)
-#   print >>file, "\t- @echo FCFLAGS=$(FCFLAGS) >> %sdist_Makefile"%(irpdir)
-#   print >>file, "\t- @echo LIB=$(LIB) >> %sdist_Makefile"%(irpdir)
-#   print >>file, "\t- @echo .DEFAULT_GOAL: exe >> %sdist_Makefile"%(irpdir)
-#   print >>file, "\t- @echo 'exe: $$(EXE).irp.F90 $(OBJ_IRP) $(OBJ) irp_touches.irp.o'  >> %sdist_Makefile"%(irpdir)
-#   print >>file, "\t- @echo '\t$$(FC) -o $$(EXE) $$(EXE).irp.F90 $(OBJ_IRP) $(OBJ) irp_touches.irp.o $$(LIB)' >> %sdist_Makefile"%(irpdir)
-#   print >>file, "\t- @echo '%%.o: %%.F90'  >> %sdist_Makefile"%(irpdir)
-#   print >>file, "\t- @echo '\t$$(FC) $$(FCFLAGS) -c $$*.F90 -o $$*.o' >> %sdist_Makefile"%(irpdir)
-#   print >>file, "\t- @echo 'clean:' >> %sdist_Makefile"%(irpdir)
-#   print >>file, "\t- @echo '\trm *.o *.mod $$(EXE) 2>/dev/null' >> %sdist_Makefile"%(irpdir)
-#   print >>file, buffer
-#   print >>file, "\t- @echo '\tirp_touches.irp.o: irp_touches.irp.F90 $(OBJ_IRP) $(OBJ) >> %sdist_Makefile"%(irpdir)
-
-#   print >>file, "%%.dist: %sdist_Makefile"%(irpdir)
-#   print >>file, "\t- @mkdir -p dist/$*| DO_NOTHING="
-#   print >>file, "\t- @cp %s* dist/$*/| DO_NOTHING="%(irpdir)
-#   print >>file, "\t- @for i in $(ALL) $(OBJ) irp_touches.irp.o $(ALL_OBJ); do rm dist/$*/$$i ; done| DO_NOTHING="
-#   print >>file, "\t- @for i in $(ALL) ; do rm dist/$*/$$i.irp.F90 ; done| DO_NOTHING="
-#   print >>file, "\t- @rm dist/$*/{*.irp.f,*.mod,irpf90_entities}| DO_NOTHING="
-#   print >>file, "\t- @rm dist/$*/*.mod 2>/dev/null| DO_NOTHING="
-#   print >>file, "\t- @echo 'EXE = $*' > dist/$*/Makefile| DO_NOTHING="
-#   print >>file, "\t- @cat dist/$*/dist_Makefile >> dist/$*/Makefile| DO_NOTHING="
-#   print >>file, "\t- @rm dist/$*/dist_Makefile| DO_NOTHING="
-#   print >>file, "\t- @cp %s$*.irp.F90 dist/$*/| DO_NOTHING="%(irpdir)
-#   print >>file, "\t- cd dist ; tar -zcvf ../$*.tar.gz $*\n"
 
     for dir in [ irpdir ] + map(lambda x: irpdir+x, command_line.include_dir):
       print >>file, dir+"%.irp.module.o: $(OBJ) "+dir+"%.irp.module.F90"
