@@ -31,6 +31,7 @@ from command_line import command_line
 do_assert = command_line.do_assert
 do_debug = command_line.do_debug
 do_openmp = command_line.do_openmp
+do_memory = command_line.do_memory
 
 import irpf90_t
 
@@ -53,34 +54,45 @@ subroutine irp_enter(irp_where)
  use irp_stack_mod
  integer       :: ithread
  character*(*) :: irp_where
-!$ integer, external :: omp_get_thread_num
-!$ integer, external :: omp_get_num_threads
- ithread = 0
-!$ ithread = omp_get_thread_num()
-$1
 """
-
-  if not command_line.do_openmp:
+  if do_openmp:
     txt += """
+ integer, external :: omp_get_thread_num
+ integer, external :: omp_get_num_threads
+ ithread = omp_get_thread_num()
 if (ithread /= 0) then
    print *, 'Error: Provider is called by thread', ithread
    call irp_trace
    stop 1
 endif
 """
+  else:
+    txt += """
+ ithread = 0
+"""
 
-  if command_line.do_memory:
-      txt+="""
+  txt += "$1"
+
+  if do_memory:
+     txt+="""
  if (.not.alloc) then
- nthread = 1
+"""
+     if do_openmp:
+       txt += """
  !$OMP PARALLEL
  !$OMP SINGLE
- !$ nthread = omp_get_num_threads()
+ nthread = omp_get_num_threads()
  !$OMP END SINGLE
  !$OMP END PARALLEL
-  print *, 'Allocating irp_stack(',STACKMAX,',',nthread,')'
-  print *, 'Allocating irp_cpu(',STACKMAX,',',nthread,')'
-  print *, 'Allocating stack_index(',nthread,')'
+"""
+     else:
+       txt += """
+ nthread = 1
+ """
+     txt += """
+   print *, 'Allocating irp_stack(',STACKMAX,',',nthread,')'
+   print *, 'Allocating irp_cpu(',STACKMAX,',',nthread,')'
+   print *, 'Allocating stack_index(',nthread,')'
  endif"""
   txt +="""
 $2
@@ -90,25 +102,41 @@ subroutine irp_enter_f(irp_where)
  use irp_stack_mod
  integer       :: ithread
  character*(*) :: irp_where
-!$ integer, external :: omp_get_thread_num
-!$ integer, external :: omp_get_num_threads
- ithread = 0
-!$ ithread = omp_get_thread_num()
+ """
+  if do_openmp:
+    txt += """
+ integer, external :: omp_get_thread_num
+ integer, external :: omp_get_num_threads
+ ithread = omp_get_thread_num()
+"""
+  else:
+    txt += """
+  ithread = 0
+"""
+  txt += """
 $1
 """
-  if command_line.do_memory:
-      txt+="""
+  if do_memory:
+    txt+="""
  if (.not.alloc) then
+"""
+    if do_openmp:
+      txt += """
  !$OMP PARALLEL
  !$OMP SINGLE
- !$ nthread = omp_get_num_threads()
+  nthread = omp_get_num_threads()
+ !$OMP END SINGLE
+ !$OMP END PARALLEL
+"""
+    else:
+      txt += """
+  nthread = 1
+"""
+    txt +="""
   print *, 'Allocating irp_stack(',STACKMAX,',',nthread,')'
   print *, 'Allocating irp_cpu(',STACKMAX,',',nthread,')'
   print *, 'Allocating stack_index(',nthread,')'
- !$OMP END SINGLE
- !$OMP END PARALLEL
- endif"""
-  txt +="""
+ endif
 $2
 end subroutine
 
@@ -117,9 +145,17 @@ subroutine irp_leave (irp_where)
   character*(*) :: irp_where
   integer       :: ithread
   double precision :: cpu
-!$ integer, external :: omp_get_thread_num
+"""
+  if do_openmp:
+    txt += """
+ integer, external :: omp_get_thread_num
+ ithread = omp_get_thread_num()
+ """
+  else:
+    txt += """
  ithread = 0
-!$ ithread = omp_get_thread_num()
+ """
+  txt += """
 $3
 $4
 end subroutine
@@ -127,32 +163,49 @@ end subroutine
 
   # $1
   if do_assert or do_debug:
-    txt = txt.replace("$1","""
+    s = """
  if (.not.alloc) then
+ """
+    if do_openmp:
+      s += """
  !$OMP PARALLEL
  !$OMP SINGLE
- !$ nthread = omp_get_num_threads()
+ nthread = omp_get_num_threads()
  !$OMP END SINGLE
  !$OMP END PARALLEL
  !$OMP CRITICAL
  if (.not.alloc) then
-   allocate(irp_stack(0:STACKMAX,nthread+1))
-   allocate(irp_cpu(0:STACKMAX,nthread+1))
-   allocate(stack_index(nthread+1))
+   allocate(irp_stack(0:STACKMAX,nthread))
+   allocate(irp_cpu(0:STACKMAX,nthread))
+   allocate(stack_index(nthread))
    stack_index = 0
    alloc = .True.
  endif
  !$OMP END CRITICAL
  endif
  stack_index(ithread+1) = mod(stack_index(ithread+1)+1,STACKMAX)
- irp_stack(stack_index(ithread+1),ithread+1) = irp_where""")
-#    if command_line.do_memory:
-#      txt+="""
-#  print *, 'Allocating irp_stack(',STACKMAX,','nthread,')'
-#  print *, 'Allocating irp_cpu(',STACKMAX,','nthread,')'
-#  print *, 'Allocating stack_index(',nthread,')'"""
+ irp_stack(stack_index(ithread+1),ithread+1) = irp_where"""
+    else:
+      s += """
+ nthread = 1
+ if (.not.alloc) then
+   allocate(irp_stack(0:STACKMAX,1))
+   allocate(irp_cpu(0:STACKMAX,1))
+   allocate(stack_index(2))
+   stack_index = 0
+   alloc = .True.
+ endif
+ endif
+ stack_index(1) = mod(stack_index(1)+1,STACKMAX)
+ irp_stack(stack_index(1),1) = irp_where"""
+    if do_memory:
+      txt+="""
+  print *, 'Allocating irp_stack(',STACKMAX,','nthread,')'
+  print *, 'Allocating irp_cpu(',STACKMAX,','nthread,')'
+  print *, 'Allocating stack_index(',nthread,')'"""
   else:
-    txt = txt.replace("$1","")
+    s = ""
+  txt = txt.replace("$1",s)
 
   # $2
   if do_debug:
@@ -184,9 +237,17 @@ subroutine irp_trace
  use irp_stack_mod
  integer :: ithread
  integer :: i
+"""
+  if do_openmp:
+    txt += """
 !$ integer, external :: omp_get_thread_num
- ithread = 0
 !$ ithread = omp_get_thread_num()
+"""
+  else:
+    txt += """
+ ithread = 0
+"""
+  txt += """
  if (.not.alloc) return
  print *, 'Stack trace: ', ithread
  print *, '-------------------------'
