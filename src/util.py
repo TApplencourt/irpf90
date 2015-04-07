@@ -110,9 +110,9 @@ def dimsize(x):
       if b0.replace('-','').isdigit():
         size = "%s - (%d)"%(b1,int(b0)-1)
       elif b1.replace('-','').isdigit():
-        size = "%d - %s"%(int(b1)+1,b0)
+        size = "%d - (%s)"%(int(b1)+1,b0)
       else:
-        size = "%s - %s + 1"%(b1,b0)
+        size = "%s - (%s) + 1"%(b1,b0)
     return size
 
 def put_info(text,filename):
