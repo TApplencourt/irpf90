@@ -100,6 +100,9 @@ def main():
   import touches
   touches.create()
 
+  import checkpoint
+  checkpoint.create()
+
   import create_man
   create_man.run()
 

@@ -4,7 +4,7 @@ src:
 	$(MAKE) -C $@
 
 man:
-	- $(MAKE) -C $@
+	- $(MAKE) -C $@ &> /dev/null
 
 all: src man
 

@@ -522,6 +522,8 @@ def irp_simple_statements(text):
   def process_assert(line):
     assert type(line) == Assert
     if command_line.do_assert:
+      if '(' not in line.text or ')' not in line.text:
+         error.fail(line,"Syntax error in ASSERT statement (parentheses)")
       condition = "(%s"%(line.text.split('(',1)[1])
       if condition == "":
         error.fail(line,"Error in Assert statement")

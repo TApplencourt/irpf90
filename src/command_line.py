@@ -256,6 +256,7 @@ def print_options():
     description = p1.communicate(description)[0]
     description = description.replace('\n','\n'.ljust(27))
     print ("-%s, --%s"%(k,options[k][0])).ljust(25), description+'\n'
+  print "\n"
 
 if __name__ == '__main__':
   print_options()
