@@ -55,11 +55,12 @@ subroutine irp_enter(irp_where)
  integer       :: ithread
  character*(*) :: irp_where
 """
-  if do_openmp:
+  if not do_openmp:
     txt += """
- integer, external :: omp_get_thread_num
- integer, external :: omp_get_num_threads
- ithread = omp_get_thread_num()
+!$ integer, external :: omp_get_thread_num
+!$ integer, external :: omp_get_num_threads
+   ithread = 0
+!$ ithread = omp_get_thread_num()
 if (ithread /= 0) then
    print *, 'Error: Provider is called by thread', ithread
    call irp_trace
@@ -68,7 +69,9 @@ endif
 """
   else:
     txt += """
- ithread = 0
+ integer, external :: omp_get_thread_num
+ integer, external :: omp_get_num_threads
+ ithread = omp_get_thread_num()
 """
 
   txt += "$1"
@@ -137,6 +140,8 @@ $1
   print *, 'Allocating irp_cpu(',STACKMAX,',',nthread,')'
   print *, 'Allocating stack_index(',nthread,')'
  endif
+"""
+  txt += """
 $2
 end subroutine
 
