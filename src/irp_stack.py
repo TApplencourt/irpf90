@@ -57,15 +57,7 @@ subroutine irp_enter(irp_where)
 """
   if not do_openmp:
     txt += """
-!$ integer, external :: omp_get_thread_num
-!$ integer, external :: omp_get_num_threads
    ithread = 0
-!$ ithread = omp_get_thread_num()
-if (ithread /= 0) then
-   print *, 'Error: Provider is called by thread', ithread
-   call irp_trace
-   stop 1
-endif
 """
   else:
     txt += """
