@@ -91,7 +91,7 @@ def run():
     result += "\n"
     result += "SRC += %sirp_stack.irp.F90"%(irpdir)
     result += " %sirp_touches.irp.F90"%(irpdir)
-    result += " %sirp_checkpoint.irp.F90"%(irpdir)
+#   result += " %sirp_checkpoint.irp.F90"%(irpdir)
     if command_line.do_openmp:
       result += " %sirp_locks.irp.F90"%(irpdir)
     if command_line.do_profile:
@@ -108,7 +108,8 @@ def run():
         result += " %s%s.irp.module.o"%(irpdir,m.filename)
     print >>file, result
 
-    print >>file, "OBJ1 = $(OBJ_IRP) $(OBJ) %sirp_touches.irp.o %sirp_checkpoint.irp.o"%(irpdir,irpdir),
+    print >>file, "OBJ1 = $(OBJ_IRP) $(OBJ) %sirp_touches.irp.o "%(irpdir),
+#   print >>file, " %sirp_checkpoint.irp.o"%(irpdir),
     if command_line.do_profile:
       print >>file, " %sirp_profile.irp.o"%(irpdir), " irp_rdtsc.o",
     if command_line.do_codelet:
@@ -151,7 +152,8 @@ def run():
       print >>file, filename," ".join(mds)," ".join(m.includes)
       if not m.is_main:
         buffer += "\t - @echo '"+filename+" ".join(mds)+"' >> %sdist_Makefile\n"%(irpdir)
-    print >>file, "%sirp_touches.irp.o %sirp_checkpoint.irp.o: $(OBJ) "%(irpdir,irpdir),
+#   print >>file, "%sirp_touches.irp.o %sirp_checkpoint.irp.o: $(OBJ) "%(irpdir,irpdir),
+    print >>file, "%sirp_touches.irp.o: $(OBJ) "%(irpdir),
     mds = filter(lambda x: not x.is_main,mod)
     mds = map(lambda x: " %s%s.irp.o %s%s.irp.o"%(irpdir,x.filename,irpdir,x.filename),mds)
     print >>file," ".join(mds)
