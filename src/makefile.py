@@ -46,14 +46,16 @@ def create():
     return
   file = open(FILENAME,"w")
   t = """IRPF90 = irpf90  #-a -d
+NINJA  = ninja
 FC     = gfortran
-FCFLAGS= -O2 -ffree-line-length-none
+FCFLAGS= -O2 -ffree-line-length-none -I .
 
 SRC=
 OBJ=
 LIB=
 
 include %s
+export
 
 %s: $(filter-out %s%%, $(wildcard */*.irp.f)) $(wildcard *.irp.f) $(wildcard *.inc.f) Makefile 
 \t$(IRPF90)
@@ -77,7 +79,12 @@ def create_gitignore():
   file.close()
 
 ######################################################################
-def run():
+def run_ninja():
+    import ninja
+    ninja.run()
+
+######################################################################
+def run_make():
     from modules import modules
     mod = []
     for m in modules.values():
@@ -185,3 +192,11 @@ def run():
     print >>file, "\t- rm -rf "+irpdir+" "+mandir+" "+IRPF90_MAKE+" irpf90_entities dist tags\n"
 
     file.close()
+
+######################################################################
+def run():
+  if command_line.do_ninja:
+    run_ninja()
+  else:
+    run_make()
+

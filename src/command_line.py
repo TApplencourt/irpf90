@@ -39,6 +39,7 @@ options['D'] = [ 'define'       , 'Defines a variable identified by the IRP_IF s
 options['g'] = [ 'profile'      , 'Activates profiling of the code.', 0 ]
 options['h'] = [ 'help'         , 'Print this help', 0 ]
 options['I'] = [ 'include'      , 'Include directory', 1 ]
+options['j'] = [ 'ninja'        , 'Use Ninja instead of make', 0 ]
 options['i'] = [ 'init'         , 'Initialize current directory. Creates a default Makefile and the temporary working directories.', 0 ]
 options['l'] = [ 'align'        , 'Align arrays using compiler directives and sets the $IRP_ALIGN variable. For example, --align=32 aligns all arrays on a 32 byte boundary.', 1 ]
 options['m'] = [ 'memory'       , 'Print memory allocations/deallocations.', 0 ]
@@ -168,6 +169,15 @@ or
           self._openmp = True
     return self._openmp
   do_openmp = property(fget=openmp)
+
+  def ninja(self):
+    if '_ninja' not in self.__dict__:
+      self._ninja = False
+      for o,a in self.opts:
+        if o in [ "-j", '--'+options['j'][0] ]:
+          self._ninja = True
+    return self._ninja
+  do_ninja = property(fget=ninja)
 
   def directives(self):
     if '_directives' not in self.__dict__:
