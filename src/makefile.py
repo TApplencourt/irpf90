@@ -48,7 +48,7 @@ def create():
   t = """IRPF90 = irpf90  #-a -d
 NINJA  = ninja
 FC     = gfortran
-FCFLAGS= -O2 -ffree-line-length-none
+FCFLAGS= -O2 -ffree-line-length-none -I .
 
 SRC=
 OBJ=

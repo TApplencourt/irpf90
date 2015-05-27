@@ -212,13 +212,13 @@ def run():
     # Environment variables
 
     try: FC = os.environ["FC"]
-    except KeyError: FC="gfortran -ffree-line-length-none"
+    except KeyError: FC="gfortran -ffree-line-length-none -I ."
 
     try: CC = os.environ["CC"]
-    except KeyError: CC="gcc"
+    except KeyError: CC="gcc -I ."
 
     try: CXX = os.environ["CXX"]
-    except KeyError: CXX="g++"
+    except KeyError: CXX="g++ -I ."
 
     includes = [ "-I %s "%(irpdir) ]
     for i in command_line.include_dir:
