@@ -1,6 +1,7 @@
-IRPF90 = python ../src/irpf90.py -I input -a -d
-FC     = ifort -profile-functions
+IRPF90 = python ../src/irpf90.py -I input -a -d -j
+FC     = ifort 
 FCFLAGS= -O2
+NINJA  = ninja -j 1 -v
 
 SRC=
 OBJ=
