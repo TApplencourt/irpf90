@@ -50,6 +50,7 @@ options['r'] = [ 'no_directives', 'Ignore all compiler directives !DEC$ and !DIR
 options['s'] = [ 'substitute'   , 'Substitute values in do loops for generating specific optimized code.', 1 ]
 options['t'] = [ 'touch'        , 'Display which entities are touched when touching the variable given as an argument.', 1 ]
 options['v'] = [ 'version'      , 'Prints version of irpf90', 0 ]
+options['w'] = [ 'warnings'     , 'Activate Warnings', 0 ]
 options['z'] = [ 'openmp'       , 'Activate for OpenMP code', 0 ]
 
 class CommandLine(object):
@@ -160,6 +161,15 @@ or
           self._coarray = True
     return self._coarray
   coarray = property(fget=coarray)
+
+  def warnings(self):
+    if '_warnings' not in self.__dict__:
+      self._warnings= False
+      for o,a in self.opts:
+        if o in [ "-w", '--'+options['w'][0] ]:
+          self._warnings= True
+    return self._warnings
+  do_warnings = property(fget=warnings)
 
   def openmp(self):
     if '_openmp' not in self.__dict__:
