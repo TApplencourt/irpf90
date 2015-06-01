@@ -404,7 +404,7 @@ def run():
         f.write('\n\n'.join(output))
         f.write('\n')
 
-    create_irpf90_make([ x.filename for x in l_targets ])
+    create_irpf90_make([ x.filename for x in l_targets ] + [ os.path.join(irpdir,'irpf90.a') ] )
 
     return
 

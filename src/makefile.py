@@ -46,9 +46,11 @@ def create():
     return
   file = open(FILENAME,"w")
   t = """IRPF90 = irpf90  #-a -d
-NINJA  = ninja
 FC     = gfortran
 FCFLAGS= -O2 -ffree-line-length-none -I .
+NINJA  = ninja
+AR     = ar
+RANLIB = ranlib
 
 SRC=
 OBJ=
@@ -134,21 +136,21 @@ def run_make():
     print >>file, "ALL_OBJ1 = $(patsubst %%, %s%%,$(notdir $(ALL_OBJ)))"%(irpdir)
     print >>file, "all:$(ALL)"
     print >>file, "\t@$(MAKE) -s move"
-    print >>file, "ifdef USE_IRPF90_A"
+#    print >>file, "ifdef USE_IRPF90_A"
     for m in mod:
       if m.is_main:
         exe = m.filename
-        print >>file, "%s: %s%s.irp.o %s%s.irp.module.o irpf90.a"%(exe,irpdir,exe,irpdir,exe)
-        print >>file, "\t$(FC) -o $@ %s$@.irp.o %s$@.irp.module.o irpf90.a $(LIB)"%(irpdir,irpdir)
+        print >>file, "%s: %s%s.irp.o %s%s.irp.module.o IRPF90_temp/irpf90.a"%(exe,irpdir,exe,irpdir,exe)
+        print >>file, "\t$(FC) -o $@ %s$@.irp.o %s$@.irp.module.o IRPF90_temp/irpf90.a $(LIB)"%(irpdir,irpdir)
         print >>file, "\t@$(MAKE) -s move"
-    print >>file, "else"
-    for m in mod:
-      if m.is_main:
-        exe = m.filename
-        print >>file, "%s: %s%s.irp.o %s%s.irp.module.o $(OBJ1)"%(exe,irpdir,exe,irpdir,exe)
-        print >>file, "\t$(FC) -o $@ %s$@.irp.o %s$@.irp.module.o $(OBJ1) $(LIB)"%(irpdir,irpdir)
-        print >>file, "\t@$(MAKE) -s move"
-    print >>file, "endif"
+#    print >>file, "else"
+#    for m in mod:
+#      if m.is_main:
+#        exe = m.filename
+#        print >>file, "%s: %s%s.irp.o %s%s.irp.module.o $(OBJ1)"%(exe,irpdir,exe,irpdir,exe)
+#        print >>file, "\t$(FC) -o $@ %s$@.irp.o %s$@.irp.module.o $(OBJ1) $(LIB)"%(irpdir,irpdir)
+#        print >>file, "\t@$(MAKE) -s move"
+#    print >>file, "endif"
 
     buffer = ""
     for m in mod:
@@ -186,8 +188,8 @@ def run_make():
       print >>file, dir+"%.o: %.F\n\t$(FC) $(FCFLAGS) -c $*.F -o "+dir+"$*.o"
       print >>file, dir+"%.irp.F90: "+IRPF90_MAKE+"\n"
     print >>file, "move:\n\t@mv -f *.mod IRPF90_temp/ 2> /dev/null | DO_NOTHING=\n"
-    print >>file, "irpf90.a: $(OBJ) $(OBJ1)\n\t$(AR) crf irpf90.a $(OBJ1)\n"
-    print >>file, "clean:\n\trm -rf $(EXE) $(OBJ1) irpf90.a $(ALL_OBJ1) $(ALL)\n"
+    print >>file, "IRPF90_temp/irpf90.a: $(OBJ) $(OBJ1)\n\t$(AR) crf IRPF90_temp/irpf90.a $(OBJ1)\n"
+    print >>file, "clean:\n\trm -rf $(EXE) $(OBJ1) IRPF90_temp/irpf90.a $(ALL_OBJ1) $(ALL)\n"
     print >>file, "veryclean:\n\t- $(MAKE) clean\n"
     print >>file, "\t- rm -rf "+irpdir+" "+mandir+" "+IRPF90_MAKE+" irpf90_entities dist tags\n"
 
