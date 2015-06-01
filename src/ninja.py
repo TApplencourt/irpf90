@@ -52,11 +52,13 @@ def dress(f,in_root=False):
 
 def create_build_touches(list_of_other_o):
     """
-    Create the build command for the irp_touches.o file.
+    Create the build command for the irp_touches.o file and the irpf90.a library.
     """
     name = "irp_touches"
+    short_lib  = "irpf90.a"
     short_target_o    = "%s.irp.o"%name
     short_target_F90  = "%s.irp.F90"%name
+    lib               = dress(short_lib)
     target_o          = dress(short_target_o)
     target_F90        = dress(short_target_F90)
 
@@ -71,13 +73,18 @@ def create_build_touches(list_of_other_o):
           "   short_in = {short_target_F90}",
           "   short_out = {short_target_o}",
           "",
+          "build {lib}: link_lib_{id} {target_o} {list_of_modules}",
+          "   short_out = {short_lib}",
+          "",
         ] )
 
     result = result.format(
         id                = irp_id            ,
+        lib               = lib               ,
         list_of_modules   = list_of_modules   ,
-        short_target_F90  = os.path.split(short_target_F90)[1]  ,
-        short_target_o    = os.path.split(short_target_o)[1]    ,
+        short_lib         = short_lib         ,
+        short_target_F90  = os.path.split(target_F90)[1]  ,
+        short_target_o    = os.path.split(target_o)[1]    ,
         target_F90        = target_F90        ,
         target_o          = target_o           
       )
@@ -89,6 +96,7 @@ def create_build_target(t,list_of_other_o):
     """
     name = t.filename
 
+    irp_lib           = dress("irpf90.a")
     target            = dress(name,in_root=True)
     short_target_o    = "%s.irp.o"%name
     short_target_F90  = "%s.irp.F90"%name
@@ -102,7 +110,7 @@ def create_build_target(t,list_of_other_o):
     needed_modules = [ "%s.irp.module.o"%(modules[x].filename) for x in modules \
         if modules[x].name in t.needed_modules ] + [ target_module_o ]
 
-    list_of_o = [ target_o, target_module_o ] + list_of_other_o
+    list_of_o = [ target_o, target_module_o, irp_lib ] 
     list_of_o = ' '.join(list_of_o)
 
     list_of_modules = map(dress, needed_modules) + list_of_other_o
@@ -115,11 +123,11 @@ def create_build_target(t,list_of_other_o):
           "   short_out = {short_target}",
           "",
           "build {target_o}: compile_fortran_{id} {target_F90} | {list_of_modules} {list_of_includes}",
-          "   short_in = {short_target_F90}",
+          "   short_in  = {short_target_F90}",
           "   short_out = {short_target_o}",
           "",
           "build {target_module_o}: compile_fortran_{id} {target_module_F90}",
-          "   short_in = {short_target_module_F90}",
+          "   short_in  = {short_target_module_F90}",
           "   short_out = {short_target_module_o}",
           "",
         ] )
@@ -129,11 +137,11 @@ def create_build_target(t,list_of_other_o):
         list_of_includes        = list_of_includes        ,
         list_of_modules         = list_of_modules         ,
         list_of_o               = list_of_o               ,
-        short_target_F90        = os.path.split(short_target_F90)[1]        ,
-        short_target_module_F90 = os.path.split(short_target_module_F90)[1] ,
-        short_target_module_o   = os.path.split(short_target_module_o)[1]   ,
+        short_target_F90        = os.path.split(target_F90)[1]        ,
+        short_target_module_F90 = os.path.split(target_module_F90)[1] ,
+        short_target_module_o   = os.path.split(target_module_o)[1]   ,
         short_target            = name                    ,
-        short_target_o          = os.path.split(short_target_o)[1]          ,
+        short_target_o          = os.path.split(target_o)[1]          ,
         target_F90              = target_F90              ,
         target_module_F90       = target_module_F90       ,
         target_module_o         = target_module_o         ,
@@ -170,11 +178,11 @@ def create_build_non_target(t,list_of_other_o):
     result = '\n'.join(
         [ 
           "build {target_o}: compile_fortran_{id} {target_F90} | {list_of_modules} {list_of_externals}",
-          "   short_in = {short_target_F90}",
+          "   short_in  = {short_target_F90}",
           "   short_out = {short_target}",
           "",
           "build {target_module_o}: compile_fortran_{id} {target_module_F90} | {list_of_externals} {list_of_includes}",
-          "   short_in = {short_target_F90}",
+          "   short_in  = {short_target_F90}",
           "   short_out = {short_target_o}",
           "",
         ] )
@@ -184,9 +192,9 @@ def create_build_non_target(t,list_of_other_o):
         list_of_externals = list_of_externals ,
         list_of_includes  = list_of_includes  ,
         list_of_modules   = list_of_modules   ,
-        short_target_F90  = os.path.split(short_target_F90)[1]  ,
+        short_target_F90  = os.path.split(target_F90)[1]  ,
         short_target      = name              ,
-        short_target_o    = os.path.split(short_target_o)[1]    ,
+        short_target_o    = os.path.split(target_o)[1]    ,
         target_F90        = target_F90        ,
         target_module_F90 = target_module_F90 ,
         target_module_o   = target_module_o   ,
@@ -208,15 +216,19 @@ def create_build_remaining(f):
       target_o = target_o.replace(cwd,os.path.join(cwd,irpdir))
 
     if extension.lower() in [ 'f', 'f90' ]:
-      result = "build {target_o}: compile_fortran_{id} {target_i}"
+      result = [ "build {target_o}: compile_fortran_{id} {target_i}" ]
     elif extension.lower() in [ 'c' ]:
-      result = "build {target_o}: compile_c_{id} {target_i}"
+      result = [ "build {target_o}: compile_c_{id} {target_i}" ]
     elif extension.lower() in [ 'cxx', 'cpp' ]:
-      result = "build {target_o}: compile_cxx_{id} {target_i}"
+      result = [ "build {target_o}: compile_cxx_{id} {target_i}" ]
 
-    result = result.format(
+    result += [ "   short_in  = {short_target_i}", 
+                "   short_out = {short_target_o}", "" ]
+    result = '\n'.join(result).format(
         target_o  = target_o,
         target_i  = target_i,
+        short_target_o  = os.path.split(target_o)[1],
+        short_target_i  = os.path.split(target_i)[1],
         id        = irp_id
       )
     return result
@@ -258,6 +270,9 @@ def run():
 
     try: FC = os.environ["FC"]
     except KeyError: FC="gfortran -ffree-line-length-none -I ."
+
+    try: AR = os.environ["AR"]
+    except KeyError: AR="ar"
 
     try: CC = os.environ["CC"]
     except KeyError: CC="gcc -I ."
@@ -315,11 +330,15 @@ def run():
           "  command = {CXX} {CXXFLAGS} -c $in -o $out", 
           "  description = C++ :  $short_in -> $short_out", 
           "",
+          "rule link_lib_{id}", 
+          "  command = {AR} crf $out $in" ,
+          "  description = Link: $short_out", 
+          "",
           "rule link_{id}", 
           "  command = {FC} $in {LIB} -o $out" ,
           "  description = Link: $short_out"] 
    
-    output = [ '\n'.join(t).format(id=irp_id, FC=FC, FCFLAGS=FCFLAGS, LIB=LIB, CXX=CXX, CXXFLAGS=CXXFLAGS, CC=CC, CFLAGS=CFLAGS)  ]
+    output = [ '\n'.join(t).format(id=irp_id, FC=FC, FCFLAGS=FCFLAGS, LIB=LIB, CXX=CXX, CXXFLAGS=CXXFLAGS, CC=CC, CFLAGS=CFLAGS, AR=AR)  ]
 
 
     # All modules : list of Fmodule objects
@@ -374,6 +393,7 @@ def run():
 
     for i in l_targets:
         output.append(create_build_target(i, l_common_o))
+#        output.append(create_build_target(i))
 
     # Remaining files
     for i in l_common_s:
