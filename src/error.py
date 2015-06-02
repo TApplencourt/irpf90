@@ -27,6 +27,8 @@
 
 import sys
 from irpf90_t import *
+from command_line import command_line
+do_warnings = command_line.do_warnings
 
 ######################################################################
 def fail(line,message):
@@ -43,6 +45,8 @@ Error:
 
 ######################################################################
 def warn(line,message):
+  if not command_line.do_warnings:
+    return
   if line is not None:
     assert isinstance(line,Line)
     print """

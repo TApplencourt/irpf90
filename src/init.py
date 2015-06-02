@@ -75,7 +75,8 @@ def init():
         try:
           file  = open(filename,"r")
         except IOError:
-          print "Warning : Unable to read file %s."%(filename)
+          if command_line.do_warnings:
+              print "Warning : Unable to read file %s."%(filename)
         else:
           buffer = file.read()
           file.close()

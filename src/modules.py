@@ -46,7 +46,7 @@ def write_module(m):
   text = m.header + m.head 
   text = map(lambda x: "%s\n"%(x),text)
   if not same_file(filename,text):
-    print filename
+#    print filename
     file = open(filename,"w")
     file.writelines(text)
     file.close()
@@ -56,7 +56,7 @@ def write_module(m):
   text = m.header + m.generated_text + m.residual_text
   text = map(lambda x: "%s\n"%(x),text)
   if not same_file(filename,text):
-    print filename
+#    print filename
     file = open(filename,"w")
     file.writelines(text)
     file.close()
