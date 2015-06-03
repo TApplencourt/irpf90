@@ -269,20 +269,18 @@ def run():
     # Environment variables
 
     try: FC = os.environ["FC"]
-    except KeyError: FC="gfortran -ffree-line-length-none -I ."
+    except KeyError: FC="gfortran -ffree-line-length-none"
 
     try: AR = os.environ["AR"]
     except KeyError: AR="ar"
 
     try: CC = os.environ["CC"]
-    except KeyError: CC="gcc -I ."
+    except KeyError: CC="gcc"
 
     try: CXX = os.environ["CXX"]
-    except KeyError: CXX="g++ -I ."
+    except KeyError: CXX="g++"
 
-    includes = [ "-I %s "%(irpdir) ]
-    for i in command_line.include_dir:
-        includes.append( "-I %s%s "%(irpdir,i) )
+    includes = [ "-I %s"%(i) for i in command_line.include_dir ]
 
     FC  += " "+' '.join(includes)
     CC  += " "+' '.join(includes)
@@ -393,7 +391,6 @@ def run():
 
     for i in l_targets:
         output.append(create_build_target(i, l_common_o))
-#        output.append(create_build_target(i))
 
     # Remaining files
     for i in l_common_s:
