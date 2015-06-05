@@ -33,7 +33,7 @@ irpdir = irpf90_t.irpdir
 mandir = irpf90_t.mandir
 irp_id = irpf90_t.irp_id
 
-FILENAME = os.path.join(irpdir,"build.ninja")
+FILENAME = "build.ninja"
 
 cwd = os.getcwd()
 
@@ -129,6 +129,8 @@ def create_build_target(t,list_of_other_o):
           "build {target_module_o}: compile_fortran_{id} {target_module_F90}",
           "   short_in  = {short_target_module_F90}",
           "   short_out = {short_target_module_o}",
+          "",
+          "build {short_target}: phony {target}",
           "",
         ] )
 
@@ -237,9 +239,7 @@ def create_build_remaining(f):
 
 def create_irpf90_make(targets):
     targets = ' '.join(targets)
-    result = """NINJA += -C {0}
-
-TARGETS={1}
+    result = """TARGETS={1}
 
 .PHONY: all clean veryclean
 
@@ -247,7 +247,7 @@ all:
 	$(NINJA)
 
 $(TARGETS): 
-	$(NINJA) $(PWD)/$@
+	$(NINJA) $@
 
 clean:
 	$(NINJA) -t clean
@@ -264,7 +264,7 @@ veryclean: clean
 
 def run():
 
-    output = []
+    output = [ "builddir = %s"%os.path.join(cwd,irpdir) ]
 
     # Environment variables
 
@@ -280,7 +280,7 @@ def run():
     try: CXX = os.environ["CXX"]
     except KeyError: CXX="g++"
 
-    includes = [ "-I %s"%(i) for i in command_line.include_dir ]
+    includes = [ "-I %s "%(os.path.join(irpdir,i)) for i in command_line.include_dir ]
 
     FC  += " "+' '.join(includes)
     CC  += " "+' '.join(includes)
@@ -312,11 +312,11 @@ def run():
     # Rules
 
     t = [ "rule compile_fortran_{id}", 
-          "  command = {FC} {FCFLAGS} -c $in -o $out", 
+          "  command = cd $builddir ; {FC} {FCFLAGS} -c $in -o $out", 
           "  description = F   : $short_in -> $short_out", 
           "",
           "rule compile_touches_{id}", 
-          "  command = {FC} -c $in -o $out",
+          "  command = cd $builddir ; {FC} -c $in -o $out",
           "  description = F   : $short_in -> $short_out", 
           "",
           "",
@@ -336,7 +336,7 @@ def run():
           "  command = {FC} $in {LIB} -o $out" ,
           "  description = Link: $short_out"] 
    
-    output = [ '\n'.join(t).format(id=irp_id, FC=FC, FCFLAGS=FCFLAGS, LIB=LIB, CXX=CXX, CXXFLAGS=CXXFLAGS, CC=CC, CFLAGS=CFLAGS, AR=AR)  ]
+    output += [ '\n'.join(t).format(id=irp_id, FC=FC, FCFLAGS=FCFLAGS, LIB=LIB, CXX=CXX, CXXFLAGS=CXXFLAGS, CC=CC, CFLAGS=CFLAGS, AR=AR)  ]
 
 
     # All modules : list of Fmodule objects

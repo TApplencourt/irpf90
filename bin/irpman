@@ -27,7 +27,16 @@
 # Define auto-completion for bash
 
 case "$0" in
-  *bash*)
+  *irpman)
+   if [[ -z $1 ]] ; then
+       echo "To activate auto-completion in bash:"
+       echo "source " $0
+   else
+     exec python $(dirname $0)/../src/irpman.py $1
+   fi
+   ;;
+
+  *)
    _irpman_complete()
    {
      local cur
@@ -37,12 +46,4 @@ case "$0" in
    } && complete -F _irpman_complete irpman
    ;;
 
-  *)
-   if [[ -z $1 ]] ; then
-       echo "To activate auto-completion in bash:"
-       echo "source " $0
-   else
-     python $(dirname $0)/../src/irpman.py $1
-   fi
-   ;;
 esac
