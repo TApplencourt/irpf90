@@ -56,7 +56,7 @@ SRC=
 OBJ=
 LIB=
 
-include %s
+-include %s
 export
 
 %s: $(filter-out %s%%, $(wildcard */*.irp.f)) $(wildcard *.irp.f) $(wildcard *.inc.f) Makefile 
