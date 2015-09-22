@@ -514,7 +514,11 @@ def irp_simple_statements(text):
     if match is not None:
       matches = [ match.group(1).strip(), match.group(3).strip() ]
       for m in matches:
-        if not(m.isdigit() or ("'" in m) or (m == "")):
+        ok = m != ""                              # not empty
+        ok = ok and not m.isdigit()               # not a digit
+        ok = ok and "'" not in m                  # not a string
+        ok = ok and m.count('(') == m.count(')')  # balanced parenthesis
+        if ok:
           result.append ( Simple_line (line.i, " print *, '%s = ', %s"%(m,m), line.filename) )
       result.append ( Simple_line (line.i, " print *, ''", line.filename) )
     return result
