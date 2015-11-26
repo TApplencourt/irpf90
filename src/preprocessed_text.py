@@ -366,7 +366,12 @@ def add_operators(text):
   result = []
   for line in text:
     buffer = line.text
-    if "+=" in buffer:
+    ls = buffer.strip()
+    if ls.startswith('print ') or \
+       ls.startswith('print*') or \
+       ls.startswith('write('):
+       pass
+    elif "+=" in buffer:
         if buffer.lstrip().startswith("if "):
             re_incr = re.compile(r"(.*)(\))(\s*)(.*)(\+=)(.*$)",re.S)
             line.text = re.sub(re_incr,r'\1\2\4=\4+(\6)', buffer)
