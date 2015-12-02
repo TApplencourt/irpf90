@@ -369,8 +369,8 @@ def run():
         l_common_s += [ "irp_locks.irp.F90" ]
 
     if command_line.do_profile:
-        l_common_o += [ "irp_profile.irp.o", "rdtsc.o" ]
-        l_common_s += [ "irp_profile.irp.F90", "rdtsc.c" ]
+        l_common_o += [ "irp_profile.irp.o", "irp_rdtsc.o" ]
+        l_common_s += [ "irp_profile.irp.F90", "irp_rdtsc.c" ]
 
     l_common_o = map(dress,l_common_o) + map(lambda x: dress(x,in_root=True), OBJ)
     l_common_s = map(dress,l_common_s) + map(lambda x: dress(x,in_root=True), SRC)
