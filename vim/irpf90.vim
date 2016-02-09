@@ -373,4 +373,83 @@ map K :call ReadMan()<CR>
 set equalprg=irpf90_indent
 
 
+if exists('g:no_irpf90_conceal') || !has('conceal') || &enc != 'utf-8'
+    finish
+endif
+
+syntax match irpf90NiceOperator "<-" conceal cchar=←
+syntax match irpf90NiceOperator "->" conceal cchar=→
+syntax match irpf90NiceOperator "==" conceal cchar=≡
+syntax match irpf90NiceOperator ".eq." conceal cchar=≡
+syntax match irpf90NiceOperator "/=" conceal cchar=≠
+syntax match irpf90NiceOperator ".ne." conceal cchar=≠
+syntax match irpf90NiceOperator ".or." conceal cchar=∨
+syntax match irpf90NiceOperator ".and." conceal cchar=∧
+syntax match irpf90NiceOperator "*" conceal cchar=×
+
+let s:extraConceal = 1
+" Some windows font don't support some of the characters,
+" so if they are the main font, we don't load them :)
+if has("win32")
+    let s:incompleteFont = [ 'Consolas'
+                        \ , 'Lucida Console'
+                        \ , 'Courier New'
+                        \ ]
+    let s:mainfont = substitute( &guifont, '^\([^:,]\+\).*', '\1', '')
+    for s:fontName in s:incompleteFont
+        if s:mainfont ==? s:fontName
+            let s:extraConceal = 0
+            break
+        endif
+    endfor
+endif
+
+if s:extraConceal
+    " Match greater than and lower than w/o messing with Kleisli composition
+    syntax match irpf90NiceOperator "<=" conceal cchar=≤
+    syntax match irpf90NiceOperator ">=" conceal cchar=≥
+    syntax match irpf90NiceOperator "\.le\." conceal cchar=≤
+    syntax match irpf90NiceOperator "\.ge\." conceal cchar=≥
+    syntax match irpf90NiceOperator "\.lt\." conceal cchar=<
+    syntax match irpf90NiceOperator "\.gt\." conceal cchar=>
+    syntax match irpf90NiceOperator "<\Delta\>" conceal cchar=Δ
+    syntax match irpf90NiceOperator "<\lapl_" conceal cchar=Δ
+    syntax match irpf90NiceOperator "\<Lambda\>" conceal cchar=Λ
+    syntax match irpf90NiceOperator "\<Pi\>" conceal cchar=Π
+    syntax match irpf90NiceOperator "\<Sigma\>" conceal cchar=Σ
+    syntax match irpf90NiceOperator "\<Psi\>" conceal cchar=Ψ
+    syntax match irpf90NiceOperator "\<Omega\>" conceal cchar=Ω
+    syntax match irpf90NiceOperator "\<alpha\>" conceal cchar=α
+    syntax match irpf90NiceOperator "\<beta\>" conceal cchar=β
+    syntax match irpf90NiceOperator "\<gamma\>" conceal cchar=γ
+    syntax match irpf90NiceOperator "\<delta\>" conceal cchar=δ
+    syntax match irpf90NiceOperator "\<epsilon\>" conceal cchar=ε
+    syntax match irpf90NiceOperator "\<zeta\>" conceal cchar=ζ
+    syntax match irpf90NiceOperator "\<theta\>" conceal cchar=θ
+    syntax match irpf90NiceOperator "\<eta\>" conceal cchar=η
+    syntax match irpf90NiceOperator "\<lambda\>" conceal cchar=λ
+    syntax match irpf90NiceOperator "\<mu\>" conceal cchar=μ
+    syntax match irpf90NiceOperator "\<nu\>" conceal cchar=ν
+    syntax match irpf90NiceOperator "\<pi\>" conceal cchar=π
+    syntax match irpf90NiceOperator "\<rho\>" conceal cchar=ρ
+    syntax match irpf90NiceOperator "\<sigma\>" conceal cchar=σ
+    syntax match irpf90NiceOperator "\<tau\>" conceal cchar=τ
+    syntax match irpf90NiceOperator "\<phi\>" conceal cchar=φ
+    syntax match irpf90NiceOperator "\<nabla\>" conceal cchar=∇
+    syntax match irpf90NiceOperator "\<grad_" conceal cchar=∇
+    syntax match irpf90NiceOperator "\<chi\>" conceal cchar=χ
+    syntax match irpf90NiceOperator "\<psi\>" conceal cchar=ψ
+    syntax match irpf90NiceOperator "\<omega\>" conceal cchar=ω
+    syntax match irpf90NiceOperator "=>" conceal cchar=⇒
+    syntax match irpf90NiceOperator "\:\:" conceal cchar=∷
+    syntax match irpf90NiceOperator "++" conceal cchar=⧺
+    syntax match irpf90NiceOperator "\<for_all\>" conceal cchar=∀
+endif
+
+hi link irpf90NiceOperator Operator
+hi! link Conceal Operator
+setlocal conceallevel=2
+
+" vim: set fenc=utf-8:
 " vim: ts=8 tw=132
+

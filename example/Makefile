@@ -1,7 +1,7 @@
-IRPF90 = python ../src/irpf90.py -I input -a -d -j
+IRPF90 = python ../src/irpf90.py -I input -a -d 
 FC     = ifort 
 FCFLAGS= -O2
-NINJA  = ninja -j 1 -v
+NINJA  = 
 
 SRC=
 OBJ=
