@@ -380,11 +380,11 @@ endif
 syntax match irpf90NiceOperator "<-" conceal cchar=←
 syntax match irpf90NiceOperator "->" conceal cchar=→
 syntax match irpf90NiceOperator "==" conceal cchar=≡
-syntax match irpf90NiceOperator ".eq." conceal cchar=≡
+syntax match irpf90NiceOperator "\.eq\." conceal cchar=≡
 syntax match irpf90NiceOperator "/=" conceal cchar=≠
-syntax match irpf90NiceOperator ".ne." conceal cchar=≠
-syntax match irpf90NiceOperator ".or." conceal cchar=∨
-syntax match irpf90NiceOperator ".and." conceal cchar=∧
+syntax match irpf90NiceOperator "\.ne\." conceal cchar=≠
+syntax match irpf90NiceOperator "\.or\." conceal cchar=∨
+syntax match irpf90NiceOperator "\.and\." conceal cchar=∧
 syntax match irpf90NiceOperator "*" conceal cchar=×
 
 let s:extraConceal = 1
