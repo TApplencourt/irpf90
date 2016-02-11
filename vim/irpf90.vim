@@ -378,14 +378,21 @@ if exists('g:no_irpf90_conceal') || !has('conceal') || &enc != 'utf-8'
 endif
 
 syntax match irpf90NiceOperator "<-" conceal cchar=←
+iab ← <-
 syntax match irpf90NiceOperator "->" conceal cchar=→
+iab → ->
 syntax match irpf90NiceOperator "==" conceal cchar=≡
+iab ≡ ==
 syntax match irpf90NiceOperator "\.eq\." conceal cchar=≡
 syntax match irpf90NiceOperator "/=" conceal cchar=≠
+iab ≠ /=
 syntax match irpf90NiceOperator "\.ne\." conceal cchar=≠
 syntax match irpf90NiceOperator "\.or\." conceal cchar=∨
+iab ∨ .or.
 syntax match irpf90NiceOperator "\.and\." conceal cchar=∧
+iab ∧ .and.
 syntax match irpf90NiceOperator "*" conceal cchar=×
+iab × *
 
 let s:extraConceal = 1
 " Some windows font don't support some of the characters,
@@ -405,45 +412,75 @@ if has("win32")
 endif
 
 if s:extraConceal
-    " Match greater than and lower than w/o messing with Kleisli composition
     syntax match irpf90NiceOperator "<=" conceal cchar=≤
-    syntax match irpf90NiceOperator ">=" conceal cchar=≥
     syntax match irpf90NiceOperator "\.le\." conceal cchar=≤
+    iab ≤ <=
+    syntax match irpf90NiceOperator ">=" conceal cchar=≥
     syntax match irpf90NiceOperator "\.ge\." conceal cchar=≥
+    iab ≥ >=
     syntax match irpf90NiceOperator "\.lt\." conceal cchar=<
     syntax match irpf90NiceOperator "\.gt\." conceal cchar=>
-    syntax match irpf90NiceOperator "<\Delta\>" conceal cchar=Δ
-    syntax match irpf90NiceOperator "<\lapl_" conceal cchar=Δ
-    syntax match irpf90NiceOperator "\<Lambda\>" conceal cchar=Λ
-    syntax match irpf90NiceOperator "\<Pi\>" conceal cchar=Π
-    syntax match irpf90NiceOperator "\<Sigma\>" conceal cchar=Σ
-    syntax match irpf90NiceOperator "\<Psi\>" conceal cchar=Ψ
-    syntax match irpf90NiceOperator "\<Omega\>" conceal cchar=Ω
-    syntax match irpf90NiceOperator "\<alpha\>" conceal cchar=α
-    syntax match irpf90NiceOperator "\<beta\>" conceal cchar=β
-    syntax match irpf90NiceOperator "\<gamma\>" conceal cchar=γ
-    syntax match irpf90NiceOperator "\<delta\>" conceal cchar=δ
-    syntax match irpf90NiceOperator "\<epsilon\>" conceal cchar=ε
-    syntax match irpf90NiceOperator "\<zeta\>" conceal cchar=ζ
-    syntax match irpf90NiceOperator "\<theta\>" conceal cchar=θ
-    syntax match irpf90NiceOperator "\<eta\>" conceal cchar=η
-    syntax match irpf90NiceOperator "\<lambda\>" conceal cchar=λ
-    syntax match irpf90NiceOperator "\<mu\>" conceal cchar=μ
-    syntax match irpf90NiceOperator "\<nu\>" conceal cchar=ν
-    syntax match irpf90NiceOperator "\<pi\>" conceal cchar=π
-    syntax match irpf90NiceOperator "\<rho\>" conceal cchar=ρ
-    syntax match irpf90NiceOperator "\<sigma\>" conceal cchar=σ
-    syntax match irpf90NiceOperator "\<tau\>" conceal cchar=τ
-    syntax match irpf90NiceOperator "\<phi\>" conceal cchar=φ
-    syntax match irpf90NiceOperator "\<nabla\>" conceal cchar=∇
-    syntax match irpf90NiceOperator "\<grad_" conceal cchar=∇
-    syntax match irpf90NiceOperator "\<chi\>" conceal cchar=χ
-    syntax match irpf90NiceOperator "\<psi\>" conceal cchar=ψ
-    syntax match irpf90NiceOperator "\<omega\>" conceal cchar=ω
     syntax match irpf90NiceOperator "=>" conceal cchar=⇒
+    iab ⇒ =>
     syntax match irpf90NiceOperator "\:\:" conceal cchar=∷
+    iab ∷ ::
     syntax match irpf90NiceOperator "++" conceal cchar=⧺
-    syntax match irpf90NiceOperator "\<for_all\>" conceal cchar=∀
+    iab ⧺ ++
+    syntax match irpf90NiceOperator "\<lapl_" conceal cchar=Δ
+    syntax match irpf90NiceOperator "\C\<Delta\>" conceal cchar=Δ
+    iab Δ Delta
+    syntax match irpf90NiceOperator "\C\<Lambda\>" conceal cchar=Λ
+    iab Λ Lambda 
+    syntax match irpf90NiceOperator "\C\<Pi\>" conceal cchar=Π
+    iab Π Pi 
+    syntax match irpf90NiceOperator "\C\<Sigma\>" conceal cchar=Σ
+    iab Σ Sigma 
+    syntax match irpf90NiceOperator "\C\<Psi\>" conceal cchar=Ψ
+    iab Ψ Psi 
+    syntax match irpf90NiceOperator "\C\<Omega\>" conceal cchar=Ω
+    iab Ω Omega 
+    syntax match irpf90NiceOperator "\C\<alpha\>" conceal cchar=α
+    iab α alpha 
+    syntax match irpf90NiceOperator "\C\<beta\>" conceal cchar=β
+    iab β beta 
+    syntax match irpf90NiceOperator "\C\<gamma\>" conceal cchar=γ
+    iab γ gamma 
+    syntax match irpf90NiceOperator "\C\<delta\>" conceal cchar=δ
+    iab δ delta 
+    syntax match irpf90NiceOperator "\C\<epsilon\>" conceal cchar=ε
+    iab ε epsilon 
+    syntax match irpf90NiceOperator "\C\<zeta\>" conceal cchar=ζ
+    iab ζ zeta 
+    syntax match irpf90NiceOperator "\C\<theta\>" conceal cchar=θ
+    iab θ theta 
+    syntax match irpf90NiceOperator "\C\<eta\>" conceal cchar=η
+    iab η eta 
+    syntax match irpf90NiceOperator "\C\<lambda\>" conceal cchar=λ
+    iab λ lambda 
+    syntax match irpf90NiceOperator "\C\<mu\>" conceal cchar=μ
+    iab μ mu 
+    syntax match irpf90NiceOperator "\C\<nu\>" conceal cchar=ν
+    iab ν nu 
+    syntax match irpf90NiceOperator "\C\<pi\>" conceal cchar=π
+    iab π pi 
+    syntax match irpf90NiceOperator "\C\<rho\>" conceal cchar=ρ
+    iab ρ rho 
+    syntax match irpf90NiceOperator "\C\<sigma\>" conceal cchar=σ
+    iab σ sigma 
+    syntax match irpf90NiceOperator "\C\<tau\>" conceal cchar=τ
+    iab τ tau 
+    syntax match irpf90NiceOperator "\C\<phi\>" conceal cchar=φ
+    iab φ phi 
+    syntax match irpf90NiceOperator "\C\<nabla\>" conceal cchar=∇
+    iab ∇ nabla 
+    syntax match irpf90NiceOperator "\C\<grad_" conceal cchar=∇
+    iab ∇ grad_o
+    syntax match irpf90NiceOperator "\C\<chi\>" conceal cchar=χ
+    iab χ chi 
+    syntax match irpf90NiceOperator "\C\<psi\>" conceal cchar=ψ
+    iab ψ psi 
+    syntax match irpf90NiceOperator "\C\<omega\>" conceal cchar=ω
+    iab ω omega 
 endif
 
 hi link irpf90NiceOperator Operator
