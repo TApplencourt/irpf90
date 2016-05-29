@@ -681,5 +681,17 @@ if __name__ == '__main__':
   from variables import variables
  #for v in variables.keys():
  #  print v
-  for line in variables['e_loc'].parents:
-    print line
+  def print_dot(x,done):
+    if x.children == []:
+       return
+    for i in x.needs:
+       pair =  (x.name, i)
+       if pair not in done:
+         print "%s -> %s"%( x.name, i )
+         done[pair] = None
+         print_dot(variables[i],done)
+
+  print "digraph G { "
+#  print_dot(variables['e_loc'], {}) 
+  print_dot(variables['psi_value'], {}) 
+  print "}"
