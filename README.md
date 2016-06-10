@@ -14,6 +14,10 @@ Dependencies
 Installing IRPF90
 -----------------
 
+``pip install irpf90``
+
+or
+
 ``${IRPF90_HOME}`` is the location of your irpf90 directory::
 
 ``` bash

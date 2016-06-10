@@ -1,4 +1,4 @@
-#/usr/bin/env python
+#!/bin/bash
 #   IRPF90 is a Fortran90 preprocessor written in Python for programming using
 #   the Implicit Reference to Parameters (IRP) method.
 #   Copyright (C) 2009 Anthony SCEMAMA 
@@ -24,25 +24,41 @@
 #   31062 Toulouse Cedex 4      
 #   scemama@irsamc.ups-tlse.fr
 
+# Define auto-completion for bash
 
-import os
+function run ()
+{
+cat << EOF | exec python - $@
+import sys, os
 
-def install():
-  VIM = os.environ["HOME"]+"/.vim"
-  try:
-    if os.access(VIM+"/syntax/irpf90.vim",os.F_OK):
-       return
-    if not os.access(VIM,os.F_OK):
-      os.mkdir(VIM)
-    file = open(VIM+"/filetype.vim","a")
-    file.write("au BufRead,BufNewFile *.irp.f setfiletype irpf90")
-    file.close()
-    if not os.access(VIM+"/syntax",os.F_OK):
-      os.mkdir(VIM+"/syntax")
-    wd = os.path.abspath(os.path.dirname(__file__))
-    os.symlink(wd+"/irpf90.vim",VIM+"/syntax/irpf90.vim")
-  except:
-    pass
+from irpf90_libs.irpf90_t import mandir
+filename = sys.argv[1].lower()+".l"
+if filename not in os.listdir(mandir):
+   print "%s does not exist"%(sys.argv[1])
+   sys.exit(-1)
 
-if __name__ == "__main__":
-  install()
+os.system("man ./"+mandir+sys.argv[1].lower()+".l")
+EOF
+}
+
+case "$0" in
+  *irpman)
+   if [[ -z $1 ]] ; then
+       echo "To activate auto-completion in bash:"
+       echo "source " $0
+   else
+      run $@
+   fi
+   ;;
+
+  *)
+   _irpman_complete()
+   {
+     local cur
+     COMPREPLY=()
+     cur=${COMP_WORDS[COMP_CWORD]}
+     COMPREPLY=( $(compgen -W "`[[ -f tags ]] && cat tags | cut -d'	' -f 1`" -- "$cur" ) )
+   } && complete -F _irpman_complete irpman
+   ;;
+
+esac
