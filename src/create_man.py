@@ -24,166 +24,171 @@
 #   31062 Toulouse Cedex 4      
 #   scemama@irsamc.ups-tlse.fr
 
+from entity import Entity
+from routine import Routine
+from irpf90_t import mandir
+from util import parmap, build_dim,lazy_write_file
+import os
 
-from variable  import Variable
-from variables import variables
-from subroutine  import Sub
-from subroutines import subroutines
-from irpf90_t  import *
-from util import *
+def do_print_short(entity):
+    assert type(entity) == Entity
+    str_ = "{0:<35} : {1:<30} :: {2:<25}  {3}".format(entity.prototype.filename[0],
+                                                      entity.type,
+                                                      entity.name,
+                                                      build_dim(entity.dim)) # yapf: disable
+    return [str_]
 
-
-def do_print_short(file,var):
-  assert type(var) == Variable
-  print >>file, "%s : %s :: %s %s"%( \
-   var.line.filename[0].ljust(35),
-   var.type.ljust(30),
-   var.name.ljust(25),
-   build_dim(var.dim) )
 
 ######################################################################
-def process_doc(file,line):
-  assert type(line) == str
-  line = line.strip()
-  if line == "":
-    line = ".br"
-  print >>file, line
+def process_doc(line):
+    assert type(line) == str
+    line = line.strip()
+    return [line if line else ".br"]
+
 
 ######################################################################
-def process_deps(file,l):
-  assert type(l) == list
-  for v in l:
-    print >>file, "%s\n.br"%(v,)
+def process_deps(l):
+    assert isinstance(l, (list, set))
+    return ['%s\n.br' % v for v in sorted(l)]
+
 
 ######################################################################
-def process_types(file,var):
-  assert type(var) == Variable
-  vars = [var.name] + var.others
-  for var in vars:
-    name = var
-    var = variables[var]
-    Type = var.type
-    dim = build_dim(var.dim)
-    print >>file, "%s\t:: %s\t%s"%(Type,name,dim)
+def process_types(entity_input, d_entity):
+    assert type(entity_input) == Entity
+
+    l_name = [entity_input.name] + entity_input.others_entity_name
+    l_entity = [d_entity[name] for name in l_name]
+
+    l = [ "{0}\t:: {1}\t{2}".format(entity.type, name, build_dim(entity.dim) )
+          for name,entity in zip(l_name,l_entity) ] # yapf: disable
+
+    return l
+
 
 ######################################################################
-def do_print(var):
-  assert type(var) == Variable
-  filename = var.line.filename[0]
-  name = var.name
-  file = open("%s%s.l"%(mandir,var.name), "w")
-  print >>file, '.TH "IRPF90 entities" l %s "IRPF90 entities" %s'%(name,name)
-  if var.same_as != var.name:
-    var = variables[var.same_as]
-  print >>file, ".SH Declaration"
-  print >>file, ".nf"
-  process_types(file,var)
-  print >>file, ".ni"
-  if var.doc != []:
-   print >>file, ".SH Description"
-   for l in var.doc:
-     process_doc(file,l)
-  print >>file, ".SH File\n.P"
-  print >>file, filename
-  if var.needs != []:
-    var.needs.sort()
-    print >>file, ".SH Needs"
-    process_deps(file,var.needs)
-  if var.needed_by != []:
-    var.needed_by.sort()
-    print >>file, ".SH Needed by"
-    process_deps(file,var.needed_by)
-  print >>file, ".SH Instability factor"
-  fo = len(var.children)
-  fi = len(var.parents)
-  print >>file, "%5.1f %%"%(100.* (fi / (fi+fo+.000001) ))
-  print >>file, ".br"
-  file.close()
+def do_print(entity, d_entity):
+    assert type(entity) == Entity
+    filename = entity.prototype.filename[0]
+    name = entity.name
 
-######################################################################
-def process_declaration_subroutine(file, sub):
-  print >>file, sub.line.text.split('!')[0].strip()
+    l_data = []
 
-# for line in sub.text:
+    l_data.append('.TH "IRPF90 entities" l {0} "IRPF90 entities" {0}'.format(name))
+
+    if entity.same_as != entity.name:
+        entity = d_entity[entity.same_as]
+    l_data.extend([".SH Declaration", ".nf"])
+    l_data += process_types(entity, d_entity)
+
+    l_data.append(".ni")
+
+    if entity.doc:
+        l_data.append(".SH Description")
+        for l in entity.doc:
+            l_data += process_doc(l)
+
+    l_data.append(".SH File\n.P")
+    l_data.append(filename)
+
+    if entity.needs:
+        l_data.append(".SH Needs")
+        l_data += process_deps(entity.needs)
+
+    if entity.needed_by:
+        l_data.append(".SH Needed by")
+        l_data += process_deps(entity.needed_by)
+
+    l_data.append(".SH Instability factor")
+    fo = len(entity.children)
+    fi = len(entity.parents)
+    l_data.append("%5.1f %%" % (100. * (fi / (fi + fo + .000001))))
+    l_data.append(".br")
+    str_ = '\n'.join(l_data)
+    lazy_write_file("%s%s.l" % (mandir, name), '%s\n' % str_)
+
+
+
 ######################################################################
 def do_print_subroutines(sub):
-  assert type(sub) == Sub
-  filename = sub.line.filename
-  name = sub.name
-  file = open("%s%s.l"%(mandir,sub.name), "w")
-  print >>file, '.TH "IRPF90 entities" l %s "IRPF90 entities" %s'%(name,name)
-  print >>file, ".SH Declaration"
-  print >>file, ".nf"
-  process_declaration_subroutine(file,sub)
-  print >>file, ".ni"
-  if sub.doc != []:
-   print >>file, ".SH Description"
-   for l in sub.doc:
-     process_doc(file,l)
-  print >>file, ".SH File\n.P"
-  print >>file, filename
-  if sub.needs != []:
-    sub.needs.sort()
-    print >>file, ".SH Needs"
-    process_deps(file,sub.needs)
-  if sub.called_by != []:
-    sub.called_by.sort()
-    print >>file, ".SH Called by"
-    process_deps(file,sub.called_by)
-  if sub.calls != []:
-    sub.calls.sort()
-    print >>file, ".SH Calls"
-    process_deps(file,sub.calls)
-  if sub.touches != []:
-    sub.touches.sort()
-    print >>file, ".SH Touches"
-    process_deps(file,sub.touches)
-  print >>file, ".SH Instability factor"
-  fo = len(sub.needs)+len(sub.calls)+len(sub.touches)
-  fi = len(sub.called_by)
-  print >>file, "%5.1f %%"%(100.* (fi / (fi+fo+.000001) ))
-  print >>file, ".br"
-  file.close()
+    assert type(sub) == Routine
+    filename = sub.prototype.filename
+    name = sub.name
+    l_data = []
+
+    l_data.append('.TH "IRPF90 entities" l {0} "IRPF90 entities" {0}'.format(name))
+    l_data.append(".SH Declaration")
+    l_data.append(".nf")
+    l_data += [sub.prototype.text]
+    l_data.append(".ni")
+    if sub.doc:
+        l_data.append(".SH Description")
+        for l in sub.doc:
+            l_data += process_doc(l)
+    l_data.append(".SH File\n.P")
+
+    l_data.append(filename)
+    if sub.needs:
+        l_data.append(".SH Needs")
+        l_data += process_deps(sub.needs)
+
+    if sub.called_by:
+        l_data.append(".SH Called by")
+        l_data += process_deps(sub.called_by)
+
+    if sub.calls:
+        l_data.append(".SH Calls")
+        l_data += process_deps(sub.calls)
+
+    if sub.touches:
+        l_data.append(".SH Touches")
+        l_data += process_deps(sub.touches)
+
+    l_data.append(".SH Instability factor")
+    fo = len(sub.needs) + len(sub.calls) + len(sub.touches)
+    fi = len(sub.called_by)
+    l_data.append("%5.1f %%" % (100. * (fi / (fi + fo + .000001))))
+    l_data.append(".br")
+
+    str_ = '\n'.join(l_data)
+
+    return '%s\n' % str_
+
+    #lazy_write_file(filename="%s.l" % os.path.join(mandir, name), text='%s\n' % str_)
+
 
 ######################################################################
-def run():
-  import parsed_text
-  import os,sys
-  pid1 = os.fork()
-  if pid1 == 0:
-    for v in variables.values():
-      do_print(v)
-    for s in subroutines.values():
-      do_print_subroutines(s)
-    sys.exit(0)
+def run(d_entity, d_routine):
 
-  pid2 = os.fork()
-  if pid2 == 0:
+    for v in d_entity.values():
+        do_print(v, d_entity)
+
+    l_subs = d_routine.values()
+
+    l_data_to_write = [("%s.l" % os.path.join(mandir, s.name), do_print_subroutines(s)) for s in l_subs]
+
+
+    def worker(l):
+	filename, text = l
+        lazy_write_file(filename, text)
+
+    parmap(worker, l_data_to_write)
+
     tags = []
-    l = variables.keys()
-    file = open("irpf90_entities","w")
-    l.sort()
-    for v in l:
-      do_print_short(file,variables[v])
-      line = variables[v].line
-#     tags.append( '%s\t%s\t/%s/;"\n'%(v,line.filename[0],line.text.split('!')[0].strip()) )
-      tags.append( '%s\t%s\t%d\n'%(v,line.filename[0],line.i) )
-    file.close()
-    l = subroutines.keys()
-    for v in l:
-      line = subroutines[v].line
-#     tags.append('%s\t%s\t/%s/;"\n'%(v,line.filename,line.text.split('!')[0].strip()))
-      tags.append('%s\t%s\t%d\n'%(v,line.filename,line.i))
-    tags.sort()
-    file = open("tags","w")
-    for line in tags:
-      file.write(line)
-    file.close()
-    sys.exit(0)
 
-  os.waitpid(pid1,0)
-  os.waitpid(pid2,0)
+    for v in d_entity.keys():
+        line = d_entity[v].prototype
+        tags.append('%s\t%s\t%d\n' % (v, line.filename[0], line.i))
+
+    for v in d_routine.keys():
+        line = d_routine[v].prototype
+        tags.append('%s\t%s\t%d\n' % (v, line.filename, line.i))
+
+    lazy_write_file("tags", ''.join(sorted(tags)))
+
+    l_data = [e for k, v in sorted(d_entity.items()) for e in do_print_short(v)]
+    str_ = '\n'.join(l_data)
+    lazy_write_file(filename="irpf90_entities", text='%s\n' % str_)
 
 ######################################################################
 if __name__ == '__main__':
-  run()
+    run()
