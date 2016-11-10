@@ -63,8 +63,7 @@ end
     precondition = ""
   else:
     precondition = "PROVIDE "+precondition
-  file = open(filename,'w')
-  file.write(template%locals())
-  file.close()
-
+  
+  from util import lazy_write_file
+  lazy_write_file(filename,template%locals())
 

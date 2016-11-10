@@ -60,7 +60,7 @@ def build_rdtsc():
 #  threading.Thread(target=t).start()
 
 def build_module():
-  from variables import variables
+  from irpy_files import variables
   data = """
 module irp_timer
  double precision :: irp_profile(3,%(n)d) 

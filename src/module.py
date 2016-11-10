@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/unr/bin/env python
 #   IRPF90 is a Fortran90 preprocessor written in Python for programming using
 #   the Implicit Reference to Parameters (IRP) method.
 #   Copyright (C) 2009 Anthony SCEMAMA 
@@ -24,204 +24,227 @@
 #   31062 Toulouse Cedex 4      
 #   scemama@irsamc.ups-tlse.fr
 
-
 from irpf90_t import *
-from variable import *
-from variables import variables
 from command_line import command_line
 import preprocessed_text
 from util import *
+from entity import Entity
+
+def put_info(text, filename):
+
+    lenmax = 80 - len(filename)
+    format_ = "%" + str(lenmax) + "s ! %s:%4s"
+
+    str_ = '{text:{width}} ! {filename}:{i:4}'
+    for _, line in text:
+	line.text = str_.format(text=line.text,filename=line.filename,i=line.i,width=lenmax)
+    return text
+
 
 class Fmodule(object):
 
-  header = \
-     [ "! -*- F90 -*-",
-       "!",
-       "!-----------------------------------------------!",
-       "! This file was generated with the irpf90 tool. !",
-       "!                                               !",
-       "!           DO NOT MODIFY IT BY HAND            !",
-       "!-----------------------------------------------!",
-       "" ]
+    header = [ "! -*- F90 -*-", 
+               "!",
+               "!-----------------------------------------------!",
+               "! This file was generated with the irpf90 tool. !",
+               "!                                               !",
+               "!           DO NOT MODIFY IT BY HAND            !",
+               "!-----------------------------------------------!", 
+	       ""]
 
-  def __init__(self,text,filename):
-    self.text = put_info(text,filename)
-    self.filename = filename[:-6]
-    self.name = "%s_mod"%(self.filename).replace('/','__').replace('.','Dot')
+    def __init__(self, text, filename, d_variable):
+        self.text = put_info(text, filename)
+        self.filename = filename[:-6]
+        self.name = "%s_mod" % (self.filename).replace('/', '__').replace('.', 'Dot')
+	self.d_all_variable = d_variable
 
-  def is_main(self):
-    if '_is_main' not in self.__dict__:
-      self._is_main = self.prog_name is not None
-    return self._is_main
-  is_main = property(is_main)
+    @irpy.lazy_property
+    def prog_name(self):
+        l = [line.filename for _, line in self.text if isinstance(line, Program)]
+        return l.pop() if l else None
 
-  def prog_name(self):
-    if '_prog_name' not in self.__dict__:
-      buffer = filter(lambda x: type(x[1]) == Program,self.text)
-      if buffer == []:
-        self._prog_name = None
-      else:
-        self._prog_name = buffer[0][1].filename
-    return self._prog_name
-  prog_name = property(prog_name)
+    @irpy.lazy_property
+    def is_main(self):
+        return self.prog_name is not None
 
-  def variables(self):
-    if '_variables' not in self.__dict__:
-      from variables import variables
-      name = self.name
-      self._variables = filter(lambda x: variables[x].fmodule == name, variables)
-    return self._variables
-  variables = property(variables)
+    @irpy.lazy_property
+    def l_entity(self):
+        return [value for value in self.d_all_variable.values() if value.fmodule == self.name]
+
+    @irpy.lazy_property
+    def head(self):
+        '''The module who containt the declaration of the entity'''
+        body = list(self.use)
+	body += list(self.dec)
+        body += [header for var in self.l_entity for header in var.header]
 
 
-  def head(self):
-    if '_head' not in self.__dict__:
-      result = [ "module %s"%(self.name) ]
-      result += self.use
-      result += self.dec
-      result += flatten( map(lambda x: variables[x].header,self.variables) )
-      result.append( "end module %s"%(self.name) )
-      self._head = result
-    return self._head
-  head = property(head)
+	if body:
+		result = ["module %s" % (self.name)]
+		result += body
+	        result += ["end module %s" % (self.name)]
+	else:
+		result = []
 
-  def needed_vars(self):
-    if '_needed_vars' not in self.__dict__:
-      result = map(lambda x: variables[x].needs,self.variables)
-      result = make_single ( flatten(result) )
-      self._needed_vars = result
-    return self._needed_vars
-  needed_vars = property(needed_vars)
+        return result
 
-  def includes(self):
-    if '_includes' not in self.__dict__:
-      buffer = []
-      for v in self.needed_vars:
-        buffer += variables[v].includes
-      self._includes = make_single(buffer)
-    return self._includes
-  includes = property(includes)
+    @irpy.lazy_property
+    def has_irp_module(self):
+	return bool(self.head)
 
-  def generated_text(self):
-    if '_generated_text' not in self.__dict__:
-      result = []
-      for var in self.variables:
-        var = variables[var]
-        result += var.provider
-        result += var.builder
-        if var.is_read:
-          result += var.reader
-        if var.is_written:
-          result += var.writer
-      self._generated_text = result
-    return self._generated_text
-  generated_text = property(generated_text)
+    @irpy.lazy_property
+    def needed_vars(self):
+        return set(n for var in self.l_entity for n in var.needs)
 
-  def residual_text(self):
-    if '_residual_text' not in self.__dict__:
-      from variables import build_use, call_provides
-      from parsed_text import move_to_top
-      def remove_providers(text):
+    @irpy.lazy_property
+    def includes(self):
+        return set(i for var in self.needed_vars for i in self.d_all_variable[var].includes)
+
+    @irpy.lazy_property
+    def generated_text(self):
+	'Routine genereraed by the IRPF90. provide, build, ...'
         result = []
-        inside = False
-        for vars,line in text:
-          if type(line) == Begin_provider:
-            inside = True
-          if not inside:
-            result.append( (vars,line) )
-          if type(line) == End_provider:
+        for var in self.l_entity:
+            result += var.provider
+            result += var.builder
+            if var.is_read:
+                result += var.reader
+            if var.is_written:
+                result += var.writer
+	
+        return result
+
+    @irpy.lazy_property
+    def residual_text_use_dec(self):
+
+        def remove_providers(text):
+            result = []
             inside = False
-        return result
 
-      def modify_functions(text):
+            for vars, line in text:
+                if type(line) == Begin_provider:
+                    inside = True
+                if not inside:
+                    result.append((vars, line))
+                if type(line) == End_provider:
+                    inside = False
+            return result
+
+        def modify_functions(text):
+
+            result = []
+            variable_list = []
+ 
+            for vars, line in text:
+                if type(line) in [Subroutine, Function, Program]:		
+                    #Deep copy...	
+                    variable_list = list(vars)
+                elif type(line) == End:
+                    result += [([], Use(line.i, x, line.filename)) for x in build_use(variable_list, self.d_all_variable)]
+                else:
+                    variable_list += vars
+
+                result.append((vars, line))
+            return result
+
+        def extract_use_dec_text(text):
+	    # (List[ Tuple(Entity,Line) ]) -> (List[ Tuple(Entity,Line),List[ Tuple(Entity,Line),List[ Tuple(Entity,Line))
+	    '''Extract the global declaration statement and module use form the declaration of function. '''
+
+            inside = 0
+            result = []
+            dec = []
+            use = [] 
+
+            for vars, line in text:
+                if isinstance(line, (Subroutine, Function, Program,Interface,Module)):
+                    inside += 1
+
+                if inside:
+                    result.append((vars, line))
+                else:
+                    if type(line) == Use:
+                        use.append((vars, line))
+                    elif type(line) == Declaration:
+                        dec.append((vars, line))
+
+                if isinstance(line,(End,End_interface,End_module)):
+		    inside += -1
+		    
+	    if inside:
+		print 'Something wrong append'
+		sys.exit(1)
+
+            return use, dec, result
+
+        result = remove_providers(self.text)
+        result = modify_functions(result)
+
+        from collections import namedtuple
+        Residual_text_use_dec = namedtuple('Residual_text_use_dec', ['use', 'dec', 'result'])
+
+        return Residual_text_use_dec(*extract_use_dec_text(result))
+
+    @irpy.lazy_property
+    def use(self):
+        return set(" %s" % line.text for _, line in self.residual_text_use_dec.use)
+
+    @irpy.lazy_property
+    def dec(self):
+	'''The declaration of this module
+	
+	Note:
+		Because user can define F90 Type, we need to keep the correct order.
+	
+	Warnign:
+		If we uniquify that can cause a problem with the type in guess.
+		```type toto
+			integer :: n
+		   end type toto
+		   integer :: n
+		```
+	Fix:
+        	We need to support Type keyword.
+
+	'''
+
+	l = [" %s" % line.text for _, line in self.residual_text_use_dec.dec]
+	from util import uniquify
+	if len(l) != len(uniquify(l)):
+		raise NotImplementedError
+
+        return [" %s" % line.text for _, line in self.residual_text_use_dec.dec]
+
+    @irpy.lazy_property
+    def residual_text(self):
+        '''Not the generated function (build, provide, touch, etc.)'''
+
         result = []
-        variable_list = []
-        for vars,line in text:
-          if type(line) in [ Subroutine, Function ]:
-            variable_list = list(vars)
-          elif type(line) == End:
-            result += map(lambda x: ([],Use(line.i,x,line.filename)), build_use(variable_list))
-          else:
-            variable_list += vars
-          result.append( (vars,line) )
-        return result
+        for vars, line in self.residual_text_use_dec.result:
+            result.append(([], line))
+            result += map(lambda x: ([], Simple_line(line.i, x, line.filename)),
+                          build_call_provide(vars, self.d_all_variable))
 
-      def extract_use_dec_text(text):
-        inside = False
-        result = []
-        dec = []
-        use = []
-        for vars,line in text:
-          if type(line) in [ Subroutine, Function, Program]:
-            inside = True
-          if inside:
-            result.append( (vars,line) )
-          else:
-            if type(line) == Use:
-              use.append( (vars,line) )
-            elif type(line) == Declaration:
-              dec.append( (vars,line) )
-          if type(line) == End:
-            inside = False
-        return use, dec, result
+        from parsed_text import move_to_top_list
+        return  [line.text for _, line in move_to_top_list(result, [Declaration, Implicit, Use])]
 
-      def provide_variables(text):
-        result = []
-        for vars,line in text:
-          result.append( ([],line) )
-          result += map(lambda x: ([],Simple_line(line.i,x,line.filename)), call_provides(vars)) 
-        return result
+    @irpy.lazy_property
+    def needed_modules(self):
+	l = set(x.split()[1] for x in self.generated_text + self.head + self.residual_text
+                             if x.lstrip().startswith("use "))
 
-      result = remove_providers(self.text)
-      result = modify_functions(result)
-      use,dec,result = extract_use_dec_text(result)
-      self._use = make_single(map(lambda x: " "+x[1].text, use))
-      self._dec = map(lambda x: " "+x[1].text, dec)
-#      self._dec = make_single(map(lambda x: " "+x[1].text, dec))
-      result = provide_variables(result)
-      result = move_to_top(result,Declaration)
-      result = move_to_top(result,Implicit)
-      result = move_to_top(result,Use)
-      result    = map(lambda x: x[1], result)
-      result    = map(lambda x: x.text, result)
-      self._residual_text = result
-    return self._residual_text
-  residual_text = property(residual_text)
+        if self.name in l:
+            l.remove(self.name)
 
-  def use(self):
-    if '_use' not in self.__dict__:
-      self.residual_text
-    return self._use
-  use = property(use)
+        return l
 
-  def dec(self):
-    if '_dec' not in self.__dict__:
-      self.residual_text
-    return self._dec
-  dec = property(dec)
+	
+    @irpy.lazy_property
+    def needed_modules_irp(self):
+        return [i for i in self.needed_modules if i.endswith("_mod")]
 
+    @irpy.lazy_property
+    def needed_modules_usr(self):
+	return [i for i in self.needed_modules if not i.endswith("_mod")]
 
-  def needed_modules(self):
-    if '_needed_modules' not in self.__dict__:
-      buffer = filter(lambda x: x.lstrip().startswith("use "), \
-        self.generated_text+self.head+self.residual_text)
-      buffer = map(lambda x: x.split()[1], buffer)
-      buffer = filter(lambda x: x.endswith("_mod"),buffer )
-      self._needed_modules = make_single(buffer)
-      if self.name in self._needed_modules:
-        self._needed_modules.remove(self.name)
-    return self._needed_modules
-  needed_modules = property(needed_modules)
-
-######################################################################
-
-if __name__ == '__main__':
-  from parsed_text import parsed_text
-  for filename, text in parsed_text:
-    if filename == 'vmc_step.irp.f':
-     x = Fmodule(text,filename)
-     break
-  for line in x.head:
-    print line
-  print x.includes
 

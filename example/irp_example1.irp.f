@@ -5,7 +5,8 @@ program irp_example1
     echo print *, \'$FC $FCFLAGS\'
     echo print *, \'$IRPF90\'
   END_SHELL
-  print *, 't = ', t
+  print*, 'hello world!'
+  print *, 't != ', t
 
   print *,  'v=', v
 ! print *,  u2

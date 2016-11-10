@@ -24,526 +24,484 @@
 #   31062 Toulouse Cedex 4
 #   scemama@irsamc.ups-tlse.fr
 
-
 from util import *
 from irpf90_t import *
-from variables import variables
-from preprocessed_text import preprocessed_text
-from subroutines import subroutines
 import regexps, re
-import error
 
-vtuple = map(lambda v: (v, variables[v].same_as, variables[v].regexp), variables.keys())
-stuple = map(lambda s: (s, subroutines[s].regexp), subroutines.keys())
-stuple = filter(lambda s: subroutines[s[0]].is_function, stuple)
 re_string_sub = regexps.re_string.sub
-
 regexps_re_string_sub = regexps.re_string.sub
-def find_variables_in_line(line):
-  assert isinstance(line,Line)
-  result = []
-  sub_done = False
-  buffer = line.lower
-  ap = result.append
-  for v,same_as,regexp in vtuple:
-    if v in buffer:
-      if not sub_done:
-        buffer = regexps_re_string_sub('',buffer)
-        sub_done = True
-      if regexp.search(buffer) is not None:
-        ap(same_as)
-  return result
 
-def find_funcs_in_line(line):
-  assert isinstance(line,Line)
-  result = []
-  append = result.append
-  sub_done = False
-  buffer = line.lower
-  for s,regexp in stuple:
-     if s in buffer:
-      if regexp.search(buffer) is not None:
-        append(s)
-  return result
+
+def find_variables_in_line(line, vtuple):
+    line_lower = regexps_re_string_sub('', line.lower)
+    return [same_as for v, same_as, regexp in vtuple if v in line_lower and regexp(line_lower)]
+
+
+def find_funcs_in_line(line, stuple):
+    assert isinstance(line, Line)
+    line_lower = line.lower
+    result = [s for s, regexp in stuple if s in line_lower and regexp.search(line_lower)]
+    return result
 
 
 def find_subroutine_in_line(line):
-  assert type(line) == Call
-  buffer = line.text.split('(')[0]
-  buffer = buffer.split()[1].lower()
-  return buffer
+    assert type(line) == Call
+    buffer = line.text.split('(')[0]
+    buffer = buffer.split()[1].lower()
+    return buffer
 
-def check_touch(line,vars,main_vars):
-  def fun(main_var):
-    if main_var not in variables:
-      error.fail(line,"Variable %s unknown"%(main_var,))
-    x = variables[main_var]
-    return [main_var]+x.others
-  all_others = make_single(flatten( map(fun,main_vars) ))
-  all_others.sort()
-  vars.sort()
-  for x,y in zip(vars,all_others):
-      if x != y:
-        message = "The following entities should be touched:\n"
-        message = "\n".join([message]+map(lambda x: "- %s"%(x,),all_others))
-        error.fail(line,message)
 
-################################################################################
-def update_variables():
-  for filename,text in preprocessed_text:
+def check_touch(variables, line, vars, main_vars):
+    def fun(main_var):
+        if main_var not in variables:
+            error.fail(line, "Variable %s unknown" % (main_var, ))
+        x = variables[main_var]
+        return [main_var] + x.others_entity_name
 
-    for line in filter(lambda x: type(x) in [ Touch, SoftTouch ], text):
-        vars = line.lower.split()
-        if len(vars) < 2:
-          error.fail(line,"Syntax error")
-        for v in vars[1:]:
-          if v not in variables:
-            error.fail(line,"Variable %s unknown"%(v,))
-          variables[v]._is_touched = True
+    all_others = uniquify(flatten(map(fun, main_vars)))
+    all_others.sort()
+    vars.sort()
+    for x, y in zip(vars, all_others):
+        if x != y:
+            message = "The following entities should be touched:\n"
+            message = "\n".join([message] + map(lambda x: "- %s" % (x, ), all_others))
+            error.fail(line, message)
 
-    for line in filter(lambda x: type(x) == Free,text):
-        vars = line.lower.split()
-        if len(vars) < 2:
-          error.fail(line,"Syntax error")
-        for v in vars[1:]:
-          if v not in variables:
-            error.fail(line,"Variable %s unknown"%(v,))
-          variables[v].is_freed = True
 
-    for line in filter(lambda x: type(x) == Irp_read,text):
-        variables[line.filename]._is_read = True
+from collections import namedtuple
+Parsed_text = namedtuple('Parsed_text', ['varlist', 'line'])
 
-    for line in filter(lambda x: type (x) == Irp_write,text):
-        variables[line.filename]._is_written = True
 
 ################################################################################
-
-def get_parsed_text():
-  def func(filename, text):
+def get_parsed_text(filename, text, variables, subroutines, vtuple):
     varlist = []
     result = []
     append = result.append
-    for line in text: #filter(
-#     lambda x: type(x) not in [ Doc, Begin_doc, End_doc ],
-#     text):
-      if type(line) in [ \
-        Empty_line,
-        Continue,
-        Return,
-        Begin_shell,
-        End_shell,
-        Openmp,
-        Directive,
-        Use,
-        Enddo,
-        End_select,
-        Endif,
-        Implicit,
-        Program,
-        Subroutine,
-        Function,
-        End,
-      ]:
-        append( ([],line) )
-      elif type(line) in [ Begin_provider, Cont_provider ]:
-        if type(line) == Begin_provider:
-          varlist = []
-        buffer = map(strip,line.lower.replace(']','').split(','))
-        assert len(buffer) > 1
-        v = buffer[1]
-        varlist.append(v)
-        variable_list = find_variables_in_line(line)
-        try:
-          variable_list.remove(variables[v].same_as)
-        except ValueError:
-          print v, variables[v].same_as
-          raise
-        append( (variable_list,line) )
-      elif type(line) == End_provider:
-        varlist = []
-        append( ([],line) )
-      elif type(line) == Provide:
-        l = line.lower.split()[1:]
-        l = filter(lambda x: x not in varlist, l)
-        for v in l:
-          if v not in variables:
-            error.fail(line,"Variable %s is unknown"%(v))
-        append( (l,Provide(line.i,"",line.filename)) )
-        append( (l,Simple_line(line.i,"!%s"%(line.text),line.filename)) )
-      elif type(line) == NoDep:
-        l = line.lower.split()[1:]
-        for v in l:
-          if v not in variables:
-            error.fail(line,"Variable %s is unknown"%(v))
-        l = map(lambda x: "-%s"%(x), l)
-        append( (l,Simple_line(line.i,"!%s"%(line.text),line.filename)) )
-      elif type(line) in [ Touch, SoftTouch ]:
-        vars = line.lower.split()
-        if len(vars) < 2:
-          error.fail(line,"Syntax error")
-        vars = vars[1:]
-        def fun(x):
-          main = variables[x].same_as
-          return main
-        main_vars = make_single( map(fun, vars) )
-        check_touch(line,vars,main_vars)
-        txt = " ".join(vars)
-        append ( (vars,Simple_line(line.i,"!",line.filename)) )
-        append ( ([],Simple_line(line.i,"! >>> TOUCH %s"%(txt,),line.filename)) )
-        def fun(x):
-          if x not in variables:
-            error.fail(line,"Variable %s unknown"%(x,))
-          return [ ([],Simple_line(line.i," call touch_%s"%(x,),line.filename)),
-                   ([],Use(line.i," use %s"%(variables[x].fmodule), line.filename)) ]
-        result += flatten(map( fun, main_vars ))
-        def fun(x):
-          if x not in variables:
-            error.fail(line,"Variable %s unknown"%(x,))
-          return ([],Simple_line(line.i," %s_is_built = .True."%(x,),line.filename))
-        result += map( fun, main_vars[:-1] )
-        if type(line) == SoftTouch:
-          append ( ([],Simple_line(line.i,"! <<< END TOUCH (Soft)",line.filename)) )
-        else:
-          append ( ([],Provide_all(line.i,"! <<< END TOUCH",line.filename)) )
-      elif type(line) == Call:
-        l = find_variables_in_line(line)
-        l = filter(lambda x: x not in varlist, l)
-        sub = find_subroutine_in_line(line)
-        if sub not in subroutines:
-          t = Simple_line
-          append( (l,Simple_line(line.i,line.text,line.filename)) )
-        else:
-          append( (l,line) )
-          if subroutines[sub].touches != []:
-            append( ([],Provide_all(line.i,"",line.filename)) )
-      elif type(line) == Free:
-        vars = line.lower.split()
-        vars = vars[1:]
-        append( ([],Simple_line(line.i,"!%s"%(line.text),line.filename)) )
-        use = map(lambda x: "  use %s"%(variables[x].fmodule),vars)
-        for var in vars:
-          result += map(lambda x: ([],Use(line.i,x,line.filename)),
-            make_single(use))
-          result += map(lambda x: ([],Simple_line(line.i,x,line.filename)),
-            variables[var].free)
-      elif type(line) == Irp_read:
-        append( ([],Simple_line(line.i,"!%s"%(line.text),line.filename)) )
-      elif type(line) == Irp_write:
-        append( ([],Simple_line(line.i,"!%s"%(line.text),line.filename)) )
-      elif type(line) in [ Begin_doc, End_doc, Doc ]:
-        pass
-      else:
-        l = find_variables_in_line(line)
-        l = filter(lambda x: x not in varlist, l)
-        append( (l,line) )
-    return result
 
- #main_result = []
- #for filename,text in preprocessed_text:
- #  main_result.append( (filename, func(filename,text)) )
- #return main_result
-  return parallel_loop(func,preprocessed_text)
+    for i, line in enumerate(text):
 
-update_variables()
-parsed_text = get_parsed_text()
+        tmp_result = []
+        if isinstance(line,
+                      (Empty_line, Continue, Return, Begin_shell, End_shell, Openmp, Directive, Use,
+                       Enddo, End_select, Endif, End, Implicit, Program, Subroutine, Function)):
+
+            append(Parsed_text([], line))
+
+        elif isinstance(line, (Begin_provider, Cont_provider)):
+
+            if isinstance(line, (Begin_provider)):
+                varlist = []
+
+            v = line.lower.replace(']', '').split(',')[1].strip()
+            varlist.append(v)
+
+            variable_list = find_variables_in_line(line, vtuple)
+            variable_list.remove(variables[v].same_as)
+
+            append(Parsed_text(variable_list, line))
+
+        elif type(line) == End_provider:
+            varlist = []
+            append(Parsed_text([], line))
+
+        elif type(line) == Provide:
+            l = line.lower.split()[1:]
+            l = filter(lambda x: x not in varlist, l)
+            for v in l:
+                if v not in variables:
+                    error.fail(line, "Variable %s is unknown" % (v))
+
+            append(Parsed_text(l, Provide(line.i, "", line.filename)))
+            append(Parsed_text(l, Simple_line(line.i, "!%s" % (line.text), line.filename)))
+
+        elif type(line) == NoDep:
+            l = line.lower.split()[1:]
+            for v in l:
+                if v not in variables:
+                    error.fail(line, "Variable %s is unknown" % (v))
+            l = map(lambda x: "-%s" % (x), l)
+            append(Parsed_text(l, Simple_line(line.i, "!%s" % (line.text), line.filename)))
+        elif type(line) in [Touch, SoftTouch]:
+
+            vars = line.lower.split()
+            if len(vars) < 2:
+                error.fail(line, "Syntax error")
+            vars = vars[1:]
+
+            main_vars = uniquify([variables[x].same_as for x in vars])
+
+            check_touch(variables, line, vars, main_vars)
+
+            txt = " ".join(vars)
+            append(Parsed_text(vars, Simple_line(line.i, "!", line.filename)))
+            append(Parsed_text([], Simple_line(line.i, "! >>> TOUCH %s" % (txt, ), line.filename)))
+
+            def fun(x):
+                if x not in variables:
+                    error.fail(line, "Variable %s unknown" % (x, ))
+                return [
+                    Parsed_text([], Simple_line(line.i, " call touch_%s" % (x, ), line.filename)),
+                    Parsed_text([], Use(line.i, " use %s" % (variables[x].fmodule), line.filename))
+                ]
+
+            result += flatten(map(fun, main_vars))
+
+            def fun(x):
+                if x not in variables:
+                    error.fail(line, "Variable %s unknown" % (x, ))
+                return Parsed_text(
+                    [], Simple_line(line.i, " %s_is_built = .True." % (x, ), line.filename))
+
+            result += map(fun, main_vars[:-1])
+            if type(line) == SoftTouch:
+                append(
+                    Parsed_text([], Simple_line(line.i, "! <<< END TOUCH (Soft)", line.filename)))
+            else:
+                append(Parsed_text([], Provide_all(line.i, "! <<< END TOUCH", line.filename)))
+
+        elif type(line) == Call:
+            l = find_variables_in_line(line, vtuple)
+            l = filter(lambda x: x not in varlist, l)
+            sub = find_subroutine_in_line(line)
+
+            if sub not in subroutines:
+                t = Simple_line
+                append(Parsed_text(l, Simple_line(line.i, line.text, line.filename)))
+            else:
+                append((l, line))
+                if subroutines[sub].touches != []:
+                    append(Parsed_text([], Provide_all(line.i, "", line.filename)))
+
+        elif type(line) == Free:
+            vars = line.lower.split()
+            vars = vars[1:]
+            append(Parsed_text([], Simple_line(line.i, "!%s" % (line.text), line.filename)))
+            use = map(lambda x: "  use %s" % (variables[x].fmodule), vars)
+            for var in vars:
+                result += map(lambda x: Parsed_text([], Use(line.i, x, line.filename)),
+                              uniquify(use))
+                result += map(lambda x: Parsed_text([], Simple_line(line.i, x, line.filename)),
+                              variables[var].free)
+
+        elif type(line) == Irp_read:
+            append(Parsed_text([], Simple_line(line.i, "!%s" % (line.text), line.filename)))
+
+        elif type(line) == Irp_write:
+            append(Parsed_text([], Simple_line(line.i, "!%s" % (line.text), line.filename)))
+
+        elif type(line) in [Begin_doc, End_doc, Doc]:
+            pass
+        else:
+            l = find_variables_in_line(line, vtuple)
+            l = filter(lambda x: x not in varlist, l)
+            append(Parsed_text(l, line))
+
+    return (filename, result)
+
+######################################################################
+def move_to_top_list(text, it):
+    'This function is Unpure'
+    'test will be modify'
+
+    assert type(text) == list
+    assert set(it).issubset([NoDep, Declaration, Implicit, Use, Cont_provider])
+
+    from collections import defaultdict
+    d_permutation = defaultdict(list)
+
+    # ~ # ~ # ~
+    # G e t  P e r m u t a t i o n
+    # ~ # ~ # ~   
+
+    inside = False
+    for i, (l_var, line) in enumerate(text):
+        t = type(line)
+        if t in [Begin_provider, Program, Subroutine, Function]:
+            begin = i
+            inside = True
+        elif t in [End_provider, End]:
+            inside = False
+        elif inside and t in it:
+            d_permutation[t].append([begin, (l_var, line), i])
+
+    # ~ # ~ # ~
+    # O r d e r  t h e m
+    # ~ # ~ # ~   
+
+    d_insert = defaultdict(list)
+    d_remove = defaultdict(list)
+    for t in reversed(it):
+        for begin, tline, idx_remove in d_permutation[t]:
+            d_insert[begin].append(tline)
+            d_remove[begin].append(idx_remove)
+
+    # ~ # ~ # ~
+    # D o  t h e m
+    # ~ # ~ # ~   
+
+    for idx in sorted(d_remove.keys()):
+
+        padding = 0
+        for tline in d_insert[idx]:
+            text.insert(idx + padding + 1, tline)
+            padding += 1
+
+        for idx_remove in sorted(d_remove[idx]):
+            text.pop(idx_remove + padding)
+            padding += -1
+    return text
+
+
+def parsed_moved_to_top(parsed_text):
+    'This subroutine is unpur:'
+    '  inout(parsed_text)'
+
+    l = [NoDep, Declaration, Implicit, Use, Cont_provider]
+    for _, text in parsed_text:
+        move_to_top_list(text, l)
 
 
 ######################################################################
+def build_sub_needs(parsed_text, d_subroutine):
+    #(List[ Tuple[List[Entity], Tuple[int,List[Line]] ]]) -> None
+    '''Set the needs, and provides arguements of Routine present in parsed_text
+    
+    Note:
+	This function is unpure	
+    '''
 
-def move_to_top(text,t):
-  assert type(text) == list
-  assert t in [ NoDep, Declaration, Implicit, Use, Cont_provider ]
+    l_buffer = []
+    for _, text in parsed_text:
+        l_begin = [ i for i, (_, line) in enumerate(text) if isinstance(line, (Subroutine, Function, Program))]
+        l_end = [i for i, (_, line) in enumerate(text) if isinstance(line, End)]
 
-  inside = False
-  for i in range(len(text)):
-    vars, line = text[i]
-    if type(line) in [ Begin_provider, Program, Subroutine, Function ]:
-      begin = i
-      inside = True
-    elif type(line) in [ End_provider, End ]:
-      inside = False
-    elif type(line) == t:
-      if inside:
-        text.pop(i)
-        begin += 1
-        text.insert(begin,(vars,line))
+        l_buffer += [(d_subroutine[text[b].line.subname], text[b + 1:e]) for b, e in zip(l_begin, l_end) if not isinstance(text[b].line, Program)]
 
-  return text
-
-result = []
-for filename,text in parsed_text:
-  text = move_to_top(text,NoDep)
-  text = move_to_top(text,Declaration)
-  text = move_to_top(text,Implicit)
-  text = move_to_top(text,Use)
-  text = move_to_top(text,Cont_provider)
-  result.append ( (filename,text) )
-parsed_text = result
-
-
-######################################################################
-def build_sub_needs():
-  # Needs
-  for filename, text in parsed_text:
-    sub = None
-    in_program = False
-    for vars,line in text:
-      if type(line) in [ Subroutine, Function ]:
-        subname = find_subname(line)
-        sub = subroutines[subname]
-        sub._needs = []
-        sub._to_provide = []
-      elif type(line) == End:
-        if not in_program:
-          sub._needs = make_single(sub._needs)
-          sub._to_provide = make_single(sub._to_provide)
-          sub = None
-      elif type(line) == Program:
-        in_program = True
-      if sub is not None:
-        if type(line) == Declaration:
-          sub._to_provide += vars
-        sub._needs += vars
-
-build_sub_needs()
+    for sub, text in l_buffer:
+        sub.needs = set(v for vs, _ in text for v in vs)
+        sub.to_provide = set(v for vs, line in text for v in vs if isinstance(line, Declaration))
 
 #####################################################################
 
-def add_subroutine_needs():
-  main_result = []
-  for filename, text in parsed_text:
-    result = []
-    append = result.append
-    for vars,line in text:
-      if type(line) == Call:
-        subname = find_subname(line)
-        vars += subroutines[subname].to_provide
-      append( (vars,line) )
-    main_result.append( (filename, result) )
-  return main_result
 
-parsed_text = add_subroutine_needs()
+def add_subroutine_needs(parsed_text, subroutines):
+    main_result = []
+    for filename, text in parsed_text:
+        result = []
+        append = result.append
+        for vars, line in text:
+            if type(line) == Call:
+                vars += subroutines[line.subname].to_provide
+            append((vars, line))
+        main_result.append((filename, result))
+    return main_result
+
 
 ######################################################################
-def move_variables():
+def move_variables(parsed_text):
+    '''Move variables into the top of the declaraiton'''
 
-  def func(filename, text):
-    result = []
-    append = result.append
-    # 1st pass
-    varlist = []
-    ifvars = []
-    elsevars = []
-    old_varlist = []
-    old_ifvars = []
-    old_elsevars = []
-    revtext = list(text)
-    revtext.reverse()
-    try:
-      for vars,line in revtext:
-        if type(line) in [ End_provider,End ]:
-          varlist = []
-          append( ([],line) )
-        elif type(line) in [ Endif, End_select ]:
-          old_ifvars.append( list(ifvars) )
-          old_elsevars.append( list(elsevars) )
-          old_varlist.append( list(varlist) )
-          varlist = []
-          append( ([],line) )
-        elif type(line) == Else:
-          elsevars += list(varlist)
-          append( (varlist,line) )
-          varlist = []
-        elif type(line) in [ Elseif, Case ]:
-          ifvars += list(varlist)
-          append( (varlist,line) )
-          if vars != []:
-            varlist = old_varlist.pop()
-            varlist += vars
-            old_varlist.append( list(varlist) )
-          varlist = []
-        elif type(line) in [ If, Select ]:
-          ifvars += list(varlist)
-          append( (varlist,line) )
-          vars += filter(lambda x: x in elsevars, ifvars)
-          ifvars = old_ifvars.pop()
-          elsevars = old_elsevars.pop()
-          varlist = old_varlist.pop() + vars
-        elif type(line) in [ Begin_provider, Program, Subroutine, Function ]:
-          varlist += vars
-          append( (varlist,line) )
-          if old_varlist != [] \
-           or old_ifvars != [] \
-           or old_elsevars != []:
-            error.fail(line,"End if missing")
-          varlist = []
-        elif type(line) in (Provide,Provide_all):
-          append( (vars,line) )
-        else:
-          varlist += vars
-          append( ([],line) )
-    except:
-      error.fail(line,"Unable to parse file")
+    def func(filename, text):
+        result = []
+        append = result.append
+        # 1st pass
+        varlist = []
+        ifvars = []
+        elsevars = []
+        old_varlist = []
+        old_ifvars = []
+        old_elsevars = []
+        revtext = list(text)
+        revtext.reverse()
+        try:
+            for vars, line in revtext:
+                if type(line) in [End_provider, End]:
+                    varlist = []
+                    append(([], line))
+                elif type(line) in [Endif, End_select]:
+                    old_ifvars.append(list(ifvars))
+                    old_elsevars.append(list(elsevars))
+                    old_varlist.append(list(varlist))
+                    varlist = []
+                    append(([], line))
+                elif type(line) == Else:
+                    elsevars += list(varlist)
+                    append((varlist, line))
+                    varlist = []
+                elif type(line) in [Elseif, Case]:
+                    ifvars += list(varlist)
+                    append((varlist, line))
+                    if vars != []:
+                        varlist = old_varlist.pop()
+                        varlist += vars
+                        old_varlist.append(list(varlist))
+                    varlist = []
+                elif type(line) in [If, Select]:
+                    ifvars += list(varlist)
+                    append((varlist, line))
+                    vars += filter(lambda x: x in elsevars, ifvars)
+                    ifvars = old_ifvars.pop()
+                    elsevars = old_elsevars.pop()
+                    varlist = old_varlist.pop() + vars
+                elif type(line) in [Begin_provider, Program, Subroutine, Function]:
+                    varlist += vars
+                    append((varlist, line))
+                    if old_varlist != [] \
+                     or old_ifvars != [] \
+                     or old_elsevars != []:
+                        error.fail(line, "End if missing")
+                    varlist = []
+                elif type(line) in (Provide, Provide_all):
+                    append((vars, line))
+                else:
+                    varlist += vars
+                    append(([], line))
+        except:
+            error.fail(line, "Unable to parse file")
 
-    result.reverse()
+        result.reverse()
 
-    # 2nd pass
-    text = result
-    result = []
-    append = result.append
-    old_varlist = []
-    varlist = []
-    try:
-      for vars,line in text:
-        if vars != []:
-          vars = make_single(vars)
-        if type(line) in [ Begin_provider, Program, Subroutine, Function ]:
-          varlist = list(vars)
-        elif type(line) in [ If, Select ]:
-          old_varlist.append(varlist)
-          vars = filter(lambda x: x not in varlist,vars)
-          varlist = make_single(varlist + vars)
-          assert old_varlist is not varlist
-        elif type(line) in [ Elseif, Else, Case ]:
-          varlist = old_varlist.pop()
-          old_varlist.append(varlist)
-          vars = filter(lambda x: x not in varlist,vars)
-          varlist = make_single(varlist + vars)
-          assert old_varlist is not varlist
-        elif type(line) in [ Endif, End_select ]:
-          varlist = old_varlist.pop()
-        elif type(line) == Provide_all:
-          vars += varlist
-        elif type(line) in [ End_provider, End ]:
-          assert old_varlist == []
-          varlist = []
-        for v in vars[:]:
-          if v[0] == '-':
-            vars.remove(v)
-            vars.remove(v[1:])
-        result.append( (vars,line) )
-    except:
-      error.fail(line,"Unable to parse file")
-    return result
+        # 2nd pass
+        text = result
+        result = []
+        append = result.append
+        old_varlist = []
+        varlist = []
+        try:
+            for vars, line in text:
+                if vars != []:
+                    vars = uniquify(vars)
+                if type(line) in [Begin_provider, Program, Subroutine, Function]:
+                    varlist = list(vars)
+                elif type(line) in [If, Select]:
+                    old_varlist.append(varlist)
+                    vars = filter(lambda x: x not in varlist, vars)
+                    varlist = uniquify(varlist + vars)
+                    assert old_varlist is not varlist
+                elif type(line) in [Elseif, Else, Case]:
+                    varlist = old_varlist.pop()
+                    old_varlist.append(varlist)
+                    vars = filter(lambda x: x not in varlist, vars)
+                    varlist = uniquify(varlist + vars)
+                    assert old_varlist is not varlist
+                elif type(line) in [Endif, End_select]:
+                    varlist = old_varlist.pop()
+                elif type(line) == Provide_all:
+                    vars += varlist
+                elif type(line) in [End_provider, End]:
+                    assert old_varlist == []
+                    varlist = []
+                for v in vars[:]:
+                    if v[0] == '-':
+                        vars.remove(v)
+                        vars.remove(v[1:])
+                result.append((vars, line))
+        except:
+            error.fail(line, "Unable to parse file")
+        return result
 
-  main_result = []
-  for filename,text in parsed_text:
-    main_result.append( (filename, func(filename,text)) )
-  return main_result
- #return parallel_loop(func,parsed_text)
+    main_result = []
+    for filename, text in parsed_text:
+        main_result.append((filename, func(filename, text)))
+    return main_result
 
-parsed_text = move_variables()
 
 ######################################################################
-def build_needs():
-  # Needs
-  for filename, text in parsed_text:
-    var = None
-    for vars,line in text:
-      if type(line) == Begin_provider:
-        buffer = map(strip,line.lower.replace(']',',').split(','))
-        var = variables[buffer[1]]
-        var.needs = []
-        var.to_provide = vars
-      elif type(line) == End_provider:
-        var.needs = make_single(var.needs)
-        var.to_provide = make_single(var.to_provide)
-        var = None
-      if var is not None:
-        var.needs += vars
-        if type(line) == Call:
-          subname = find_subname(line)
-          var.needs += subroutines[subname].needs
-        elif type(line) in [ \
-          Simple_line,  Assert,
-          Do         ,  If,
-          Elseif     ,  Select,
-        ]:
-          funcs = find_funcs_in_line(line)
-          for f in funcs:
-            var.needs += subroutines[f].needs
-  for v in variables:
-    main = variables[v].same_as
-    if main != v:
-      variables[v].needs = variables[main].needs
-      variables[v].to_provide = variables[main].to_provide
+def build_needs(parsed_text, subroutines, stuple, variables):
+    'out: variable'
 
-  # Needed_by
-  for v in variables:
-    variables[v].needed_by = []
-  for v in variables:
-    main = variables[v].same_as
-    if main != v:
-      variables[v].needed_by = variables[main].needed_by
-  for v in variables:
-    var = variables[v]
-    if var.is_main:
-      for x in var.needs:
-        variables[x].needed_by.append(var.same_as)
-  for v in variables:
-    var = variables[v]
-    var.needed_by = make_single(var.needed_by)
+    # ~#~#~#~#~#
+    # Needs and to_provide
+    # ~#~#~#~#~#
 
+    for filename, text in parsed_text:
 
-build_needs()
+        l_begin = [i for i, (_, line) in enumerate(text) if isinstance(line, Begin_provider)]
+        l_end = [i for i, (_, line) in enumerate(text) if isinstance(line, End_provider)]
 
-result = []
-for filename,text in parsed_text:
-  text = move_to_top(text,NoDep)
-  text = move_to_top(text,Declaration)
-  text = move_to_top(text,Implicit)
-  text = move_to_top(text,Use)
-  text = move_to_top(text,Cont_provider)
-  result.append ( (filename,text) )
-parsed_text = result
+        for start, end in zip(l_begin, l_end):
+            l_vars_start, line_start = text[start]
 
+            name = map(str.strip, line_start.lower.replace(']', ',').split(','))[1]
+            entity = variables[name]
+
+            entity.to_provide = uniquify(l_vars_start)
+
+            l_needs = []
+            for vars, line in text[start:end]:
+                l_needs += vars
+
+                if type(line) == Call:
+                    l_needs += subroutines[line.subname].needs
+                elif type(line) in [Simple_line, Assert, Do, If, Elseif, Select]:
+                    funcs = find_funcs_in_line(line, stuple)
+                    for f in funcs:
+                        l_needs += subroutines[f].needs
+
+            entity.needs = uniquify(l_needs)
+
+    for v in variables:
+        main = variables[v].same_as
+        if main != v:
+            variables[v].needs = variables[main].needs
+            variables[v].to_provide = variables[main].to_provide
+
+    # ~#~#~#~#~#
+    # Needs and to_provide
+    # ~#~#~#~#~#
+
+    for v in variables:
+        variables[v].needed_by = []
+    for v in variables:
+        main = variables[v].same_as
+        if main != v:
+            variables[v].needed_by = variables[main].needed_by
+
+    for v in variables:
+        var = variables[v]
+        if var.is_main:
+            for x in var.needs:
+                variables[x].needed_by.append(var.same_as)
+
+    for v in variables:
+        var = variables[v]
+        var.needed_by = uniquify(var.needed_by)
 
 ######################################################################
 from command_line import command_line
 
-def check_opt():
-  if not command_line.do_checkopt:
-    return
 
-  for filename, text in parsed_text:
-    do_level = 0
-    for vars,line in text:
-     if not type(line) == Provide_all:
-      if do_level > 0 and vars != []:
-        print "Optimization: %s line %d"%(line.filename,line.i)
-        for v in vars:
-          print "  PROVIDE ",v
-      if type(line) == Do:
-        do_level += 1
-      elif type(line) == Enddo:
-        do_level -= 1
-check_opt()
+def check_opt(parsed_text):
+    if not command_line.do_checkopt:
+        return
 
-######################################################################
-def perform_loop_substitutions():
-  main_result = []
-  for filename, text in parsed_text:
-    result = []
-    append = result.append
-    for vars,line in text:
-      if type(line) in [ Do, If, Elseif ] :
-        for k,v in command_line.substituted.items():
-          reg = v[1]
-          while reg.search(line.text) is not None:
-            line.text = re.sub(reg,r'\1%s\3', line.text,count=1)%v[0]
-      append( (vars,line) )
-    main_result.append( (filename, result) )
-  return main_result
+    for filename, text in parsed_text:
+        do_level = 0
+        for vars, line in text:
+            if not type(line) == Provide_all:
+                if do_level > 0 and vars != []:
+                    print "Optimization: %s line %d" % (line.filename, line.i)
+                    for v in vars:
+                        print "  PROVIDE ", v
+                if type(line) == Do:
+                    do_level += 1
+                elif type(line) == Enddo:
+                    do_level -= 1
 
-parsed_text = perform_loop_substitutions()
 
 ######################################################################
-if __name__ == '__main__':
- for i in range(len(parsed_text)):
-  if parsed_text[i][0] == sys.argv[1]:
-   print '!-------- %s -----------'%(parsed_text[i][0])
-   for line in parsed_text[i][1]:
-     print line[1]
-     print line[0], line[1].filename
-#for i in subroutines:
-#  print i, subroutines[i].needs, subroutines[i].to_provide
+def perform_loop_substitutions(parsed_text):
+    main_result = []
+    for filename, text in parsed_text:
+        result = []
+        append = result.append
+        for vars, line in text:
+            if type(line) in [Do, If, Elseif]:
+                for k, v in command_line.substituted.items():
+                    reg = v[1]
+                    while reg.search(line.text) is not None:
+                        line.text = re.sub(reg, r'\1%s\3', line.text, count=1) % v[0]
+            append((vars, line))
+        main_result.append((filename, result))
+    return main_result
+

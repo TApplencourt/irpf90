@@ -24,50 +24,42 @@
 #   31062 Toulouse Cedex 4      
 #   scemama@irsamc.ups-tlse.fr
 
+from irpf90_t import irp_id,irpdir
+import os
+from util import lazy_write_file
 
-from irpf90_t import *
-from util import *
-from variables import variables
-from modules import modules
+def create(modules,variables):
+  # (Dict[str,Module]. Dict[str, Variable]) -> None
+  '''Create the fortran90 finalize subroutine and the touched one'''
 
-FILENAME=irpdir+'irp_touches.irp.F90'
-
-def create():
-  out = []
-  l = variables.keys()
-  l.sort
-  main_modules = filter(lambda x: modules[x].is_main, modules)
+  
   finalize = "subroutine irp_finalize_%s\n"%(irp_id)
-  for m in filter(lambda x: not modules[x].is_main, modules):
-    finalize += " use %s\n"%(modules[m].name)
-  for v in l:
-    var = variables[v]
-    var_in_main = False
-    for m in main_modules:
-      if var.fmodule == modules[m].name:
-        var_in_main = True
-        break
-    if not var_in_main:
-      if var.is_touched:
-        out += var.toucher
-      if var.dim != []:
+  for m in filter(lambda x: not modules[x].is_main and modules[x].has_irp_module, modules):
+      finalize += " use %s\n"%(modules[m].name)
+
+  main_modules_name =[ m.name for m in modules.values() if m.is_main]
+  
+  out = []
+  for v,var in variables.iteritems():
+
+    if var.fmodule not in main_modules_name:
+      #if var.is_self_touched:
+      out += var.toucher
+      if var.dim:
         finalize += "  if (allocated(%s)) then\n"%v
         finalize += "    %s_is_built = .False.\n"%var.same_as
         finalize += "    deallocate(%s)\n"%v
         finalize += "  endif\n"
+
   finalize += "end\n"
 
-
-  if out != []:
+  if out:
     out = map(lambda x: "%s\n"%(x),out)
 
   out += finalize
-  
-  if not same_file(FILENAME,out):
-    file = open(FILENAME,'w')
-    file.writelines(out)
-    file.close()
+
+  filename=os.path.join(irpdir,'irp_touches.irp.F90')
+  lazy_write_file(filename,''.join(out))
 
 if __name__ == '__main__':
   create()
-

@@ -253,13 +253,8 @@ subroutine irp_trace
  enddo
  print *, '-------------------------'
 end subroutine
+
 """
 
-  txt = txt.split('\n')
-  txt = map(lambda x: x+"\n",txt)
-  if not util.same_file(FILENAME, txt):
-    file = open(FILENAME,'w')
-    file.writelines(txt)
-    file.close()
-
+  util.lazy_write_file(FILENAME,txt)
 
