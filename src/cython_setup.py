@@ -29,7 +29,7 @@ from distutils.extension import Extension
 from Cython.Distutils import build_ext
 import os
 
-to_remove = """cython_setup.py version.py command_line.py""".split()
+to_remove = """__init__.py cython_setup.py version.py command_line.py""".split()
 ext_modules = []
 
 files = os.listdir('.')

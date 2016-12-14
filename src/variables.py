@@ -47,8 +47,18 @@ def create_variables():
         inside = False
         icount += 1
         v = Variable(buffer,icount)
+        if v.name in result:
+          print "Warning: Duplicate provider for %s in"%(v.name)
+          print "- ", v.line.filename[0], " line ", v.line.i
+          print "- ", result[v.name].line.filename[0], " line ", result[v.name].line.i
+          print "Choosing first version"
         result[v.name] = v
         for other in v.others:
+          if other in result:
+            print "Warning: Duplicate provider for %s in"%(other)
+            print "- ", v.line.filename[0], " line ", v.line.i
+            print "- ", result[other].line.filename[0], " line ", result[other].line.i
+            print "Choosing first version"
           result[other] = Variable(buffer,icount,other)
         buffer = []
   return result
