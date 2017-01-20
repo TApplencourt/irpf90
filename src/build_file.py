@@ -319,7 +319,7 @@ r""]
 "        $(BUILD_SYSTEM) -C $(dir $(1) ) -f $(notdir $(1) ) $(addprefix $(CURDIR)/, $(2)) && touch $(2)",
 "endef",
 	"",
-               "EXE := $(shell egrep -r '^\s*program' *.irp.f |  awk '{print $$2}')",
+               "EXE := $(shell egrep -ri '^\s*program' *.irp.f | cut -d'.' -f1)",
                "",
                ".PHONY: all",
 	       "",

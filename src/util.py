@@ -55,7 +55,7 @@ def chunkify(l,n_chunk):
 
 
 import multiprocessing
-def parmap(f, it, parallel=True):
+def parmap(f, it, parallel=False):
     # (Callable, Iterable, bool) -> List
     '''Parallel version of the std map function
     

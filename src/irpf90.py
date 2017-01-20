@@ -86,6 +86,7 @@ def main():
     comm_world.create_touches()
     comm_world.create_man()
 
+    print 'Done'
     if command_line.do_profile:
         import profile
         profile.run()

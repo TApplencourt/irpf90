@@ -249,7 +249,6 @@ def execute_shell(text):
               assert n >= 1, fail(header_text, "Missing", bracket)
 	else:
 	      interpreter = header_text[header_text.find('[')+1: header_text.find(']')].strip()
-
 	script = ['%s\n' % l.text for l in text[begin+1:end] ]
 	scriptname="%s_shell_%d" % (header.filename, header.i)
 
@@ -399,15 +398,34 @@ def add_operators(text):
 ######################################################################
 def remove_comments(text, form):
     # (List[Line], int) -> List[Line]
-    '''Remove all comments'''
+    '''Remove all comments
+
+    Note:
+	This function is unpur
+    '''
     result = []
 
-    def remove_after_bang(line):
-        match = re_comment.match(line)
-        if not match:
-            return line
-        else:
-	    return ''.join(str_ for str_ in match.groups() if str_).rstrip()
+    def remove_after_bang(str_):
+	# str -> str
+	i_bang = str_.find('!')
+	
+	if i_bang == -1:
+		return str_
+	else:
+		sentinel, inside  = None, False
+		for i,c in enumerate(str_):
+			if c == '"' or c == "'":
+				if not inside:
+					inside = True
+					sentinel = c
+				elif sentinel == c:
+					inside = False
+
+			elif c == '!' and not inside:
+				return str_[:i]
+				
+		return str_
+	
 
     if form == Free_form:
         for line in text:
@@ -417,11 +435,11 @@ def remove_comments(text, form):
                 pass
             else:
                 newline = line.text.lstrip()
-                if newline == "" or newline[0] == "!":
-                    pass
-                else:
-                    line.text = remove_after_bang(line.text)
-                    result.append(line)
+                if (newline != "" and newline[0] != "!#"):
+		    text = remove_after_bang(line.text)
+		    if text:
+        	        line.text = text 
+    	                result.append(line)
 
         return result
     else:
@@ -574,8 +592,8 @@ def irp_simple_statements(text):
         return result
 
     def process_end(line):
-        '''Set irp_here variable in provider block'''
-        line.text = "end"
+        '''Add irp_leave if necessary'''
+
         if command_line.do_assert or command_line.do_debug:
             i = line.i
             f = line.filename
@@ -820,17 +838,16 @@ def check_begin_end(raw_text):
 
     for line in raw_text:
 	d_type[type(line)].append(line)
-
     
     for t_end, l_begin in d_block.iteritems():
 	n_end = len(d_type[t_end])
 	n_begin = sum(len(d_type[t_begin]) for t_begin in l_begin)
   
 	if n_end > n_begin:
-	    logger.warning("You have maybe more close statement than open statement (%s) (%s)",line.filename,t_end)
+	    logger.error("You have more close statement than open statement (%s) (%s)",line.filename,t_end)
 	    sys.exit(1)
 	elif n_end < n_begin:
-	    logger.warning('You have mayble more end statement than open statenemt for (%s)  (%s)' %  (line.filename, t_end))
+	    logger.error('You have more end statement than open statenemt for (%s)  (%s)' %  (line.filename, t_end))
 	    sys.exit(1)
 
 ######################################################################
@@ -881,7 +898,15 @@ class Preprocess_text(object):
     @irpy.lazy_property_mutable
     def text(self):
         with open(self.filename, 'r') as f:
-            return f.read()
+            str_ = f.read()
+	
+	#Dirty thing. We will replace 'end program' by 'end subroutine'
+	#because afterward the program will be replaced by a subroutine...	
+
+	import re
+	transform = re.compile(re.escape('end program'), re.IGNORECASE)
+	
+	return transform.sub('end subroutine', str_)
 
     @irpy.lazy_property_mutable
     def text_align(self):
@@ -938,6 +963,7 @@ class Preprocess_text(object):
         result = check_OpenMP(result)
 
         check_begin_end(result)
+
         return result
 
 
