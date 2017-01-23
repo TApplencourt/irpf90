@@ -180,9 +180,15 @@ def create_build_compile(t, l_module, l_ext_modfile=[], ninja=True):
     # MOD name are not part of the standart.
 
     needed_modules = [dress(x, in_root=True) for x in l_ext_modfile]
-    needed_modules += [
-        "%s.irp.o" % (x.filename) for x in l_module if x.name in t.needed_modules_usr
-    ]
+
+    # Expensive and stupid. We can create a dict to do the loockup only once 
+    for m in t.needed_modules_usr:
+		for x in l_module:
+			if m in x.gen_mod and x.filename != t.filename:
+				needed_modules.append("%s.irp.o" %  x.filename)
+
+    from util import uniquify
+    needed_modules = uniquify(needed_modules)
 
     needed_modules_irp = [
         "%s.irp.module.o" % (x.filename) for x in l_module if x.name in t.needed_modules_irp
@@ -200,12 +206,13 @@ def create_build_compile(t, l_module, l_ext_modfile=[], ninja=True):
     list_of_modules     = ' '.join(map(dress, needed_modules))
     list_of_modules_irp = ' '.join(map(dress, needed_modules_irp))
 
-    inline_module = True
-    if not inline_module:
+    inline_include = True
+    if not inline_include:
 	    #Wrong name, this not work!
 	    #list_of_includes = ' '.join(map(lambda x: dress(x, in_root=True), t.includes))
 	    raise NotImplemented
     else:
+	    #The include have already by included
 	    list_of_includes = ' '
   
     l_build = [
@@ -283,24 +290,23 @@ def create_makefile(d_flags,d_var,irpf90_flags,ninja=True):
 		'\n'.join("{0} = {1}".format(k, ' '.join(v)) for k, v in sorted(d_var.iteritems())),
 		'']
 
-    result += [
-r'# Dark magic below modify with caution!',
-r'# "You are Not Expected to Understand This"',
-r"#                     .",
-r"#           /^\     .",
-r'#      /\   "V",',
-r"#     /__\   I      O  o",
-r"#    //..\\  I     .",
-r"#    \].`[/  I",
-r"#    /l\/j\  (]    .  O",
-r"#   /. ~~ ,\/I          .",
-r"#   \\L__j^\/I       o",
-r"#    \/--v}  I     o   .",
-r"#    |    |  I   _________",
-r"#    |    |  I c(`       ')o",
-r"#    |    l  I   \.     ,/",
-r"#  _/j  L l\_!  _//^---^\\_",
-r""]
+    result += [ r'# Dark magic below modify with caution!',
+	        r'# "You are Not Expected to Understand This"',
+                r"#                     .",
+		r"#           /^\     .",
+		r'#      /\   "V",',
+		r"#     /__\   I      O  o",
+		r"#    //..\\  I     .",
+		r"#    \].`[/  I",
+		r"#    /l\/j\  (]    .  O",
+		r"#   /. ~~ ,\/I          .",
+		r"#   \\L__j^\/I       o",
+		r"#    \/--v}  I     o   .",
+		r"#    |    |  I   _________",
+		r"#    |    |  I c(`       ')o",
+		r"#    |    l  I   \.     ,/",
+		r"#  _/j  L l\_!  _//^---^\\_",
+		r""]
 
     result += ["",
 	      "ifeq ($(BUILD_SYSTEM),ninja)",
@@ -309,16 +315,16 @@ r""]
               "else ifeq ($(BUILD_SYSTEM),make)",
               "\tBUILD_FILE=IRPF90_temp/build.make",
 	      "\tBUILD_SYSTEM += -j",
-"else",
-"DUMMY:",
-        "\t$(error 'Wrong BUILD_SYSTEM: $(BUILD_SYSTEM)')",
-"endif"]
+	      "else",
+	      "DUMMY:",
+              "\t$(error 'Wrong BUILD_SYSTEM: $(BUILD_SYSTEM)')",
+	      "endif"]
 
     result += ["",
-"define run_and_touch",
-"        $(BUILD_SYSTEM) -C $(dir $(1) ) -f $(notdir $(1) ) $(addprefix $(CURDIR)/, $(2)) && touch $(2)",
-"endef",
-	"",
+               "define run_and_touch",
+	       "        $(BUILD_SYSTEM) -C $(dir $(1) ) -f $(notdir $(1) ) $(addprefix $(CURDIR)/, $(2)) && touch $(2)",
+	       "endef",
+	       "",
                "EXE := $(shell egrep -ri '^\s*program' *.irp.f | cut -d'.' -f1)",
                "",
                ".PHONY: all",

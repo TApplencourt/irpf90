@@ -75,8 +75,8 @@ l_type = [
     "Assert", "Touch", "SoftTouch", "Irp_read", "Irp_write", "Irp_If",
     "Irp_Else", "Irp_Endif", "Openmp", "Directive", "Use", "Do", "Enddo", "If",
     "Elseif", "Else", "Endif", "Select", "Case", "End_select", "Provide", "NoDep", "Return", "Include",
-    "Implicit", "Free", "End", "Provide_all","Contains",'Type','End_module','Interface','End_interface'
-]
+    "Implicit", "Free", "End", "Provide_all","Contains",'Type','End_module','Interface','End_interface',
+    'Where','Elsewhere','Endwhere']
 
 for t in l_type:
     globals()[t] = type(t, (Line, ), {})

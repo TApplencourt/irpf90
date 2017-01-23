@@ -34,6 +34,8 @@ import sys
 re_endif = re.compile("end +if")
 re_elseif = re.compile("else +if")
 re_enddo = re.compile("end +do")
+re_endwhere = re.compile("end +where")
+
 re_endtype = re.compile("end +type.*")
 re_endmodule = re.compile("end +module",re.I)
 re_endselect = re.compile("end +select")
@@ -91,7 +93,10 @@ simple_dict = {
     "module": Module,
     "endmodule": End_module,
     "interface": Interface,
-    "endinterface": End_interface
+    "endinterface": End_interface,
+    "where": Where,
+    "elsewhere": Elsewhere,
+    "endwhere": Endwhere,
 }
 
 def get_canonized_text(text_lower):
@@ -104,6 +109,7 @@ def get_canonized_text(text_lower):
     text_canonized = re_endif.sub("endif", text_canonized)
     text_canonized = re_endselect.sub("endselect", text_canonized)
     text_canonized = re_endinterface.sub("endinterface", text_canonized)
+    text_canonized = re_endwhere.sub('endwhere',text_canonized)
 
     for c in """()'"[]""":
         text_canonized = text_canonized.replace(c, " %s " % c)
@@ -422,7 +428,7 @@ def remove_comments(text, form):
 					inside = False
 
 			elif c == '!' and not inside:
-				return str_[:i]
+				return str_[:i].strip()
 				
 		return str_
 	
@@ -842,13 +848,18 @@ def check_begin_end(raw_text):
     for t_end, l_begin in d_block.iteritems():
 	n_end = len(d_type[t_end])
 	n_begin = sum(len(d_type[t_begin]) for t_begin in l_begin)
-  
-	if n_end > n_begin:
+ 
+	if n_end != n_begin:
+ 
+          if n_end > n_begin:
 	    logger.error("You have more close statement than open statement (%s) (%s)",line.filename,t_end)
-	    sys.exit(1)
-	elif n_end < n_begin:
+  	  else:
 	    logger.error('You have more end statement than open statenemt for (%s)  (%s)' %  (line.filename, t_end))
-	    sys.exit(1)
+          
+          for i in zip([l for i in l_begin for l in d_type[i]], d_type[t_end]):
+                logger.debug(i)
+
+	  sys.exit(1)
 
 ######################################################################
 def remove_ifdefs(text):
