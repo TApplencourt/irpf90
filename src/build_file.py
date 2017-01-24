@@ -72,7 +72,8 @@ def create_build_touches(l_irp_m, ninja):
 
     result_make = '\n'.join([
         "{target_o}: {target_F90} | {list_of_modules_irp}",
-	"\t$(FC) $(FCFLAGS) -c $^ -o $@", ""
+	'\t@printf "F: {short_target_F90} -> {short_target_o}\\n"',
+	"\t@$(FC) $(FCFLAGS) -c $^ -o $@", ""
     ])
 
     result = result_ninja if ninja else result_make
@@ -102,7 +103,8 @@ def create_build_archive(l_irp_o, l_usr_o_wo_main, l_ext_o, l_irp_sup_o, ninja=T
 
     result_make = '\n'.join([
 	"{lib}: {list_of_object}",
-	"\t$(AR) cr $@ $^", ""])
+	'\t@printf "Archive: {short_lib}\\n"',
+	"\t@$(AR) cr $@ $^", ""])
 
     result = result_ninja if ninja else result_make
     return result.format(**locals())
@@ -141,7 +143,8 @@ def create_build_link(t, l_irp_m, l_usr_m, l_ext_m, ninja=True):
 
     result_make = '\n'.join([
 	"{target}:{target_o} {irp_lib} | {list_of_module}",
-	"\t$(FC) $^ $(LIB) -o $@",
+	'\t@printf "Link {short_target}\\n"',
+	"\t@$(FC) $^ $(LIB) -o $@",
          ""])
 
     result = result_ninja if ninja else result_make
@@ -201,7 +204,6 @@ def create_build_compile(t, l_module, l_ext_modfile=[], ninja=True):
 
         target_module_o = dress(short_target_module_o)
         target_module_F90 = dress(short_target_module_F90)
-
         needed_modules_irp += [target_module_o]
 
     list_of_modules     = ' '.join(map(dress, needed_modules))
@@ -225,21 +227,23 @@ def create_build_compile(t, l_module, l_ext_modfile=[], ninja=True):
 
     l_build_make = [
         "{target_o}: {target_F90} | {list_of_includes}  {list_of_modules} {list_of_modules_irp}",
-        "\t$(FC) $(FCFLAGS) -c $^ -o $@", ""
+	'\t@printf "F: {short_target_F90} -> {short_target}\\n"',
+        "\t@$(FC) $(FCFLAGS) -c $^ -o $@", ""
     ]
 
     # No need of module when compiling the irp_module.
     if t.has_irp_module:
         l_build += [
             "build {target_module_o}: compile_fortran_{irp_id} {target_module_F90} | {list_of_includes} {list_of_modules} ",
-            "   short_in  = {short_target_F90}",
-	    "   short_out = {short_target_o}",
+            "   short_in  = {short_target_module_F90}",
+	    "   short_out = {short_target_module_o}",
 	    ""
         ]
 
         l_build_make += [
-            "{target_module_o}: {target_module_F90} | {list_of_includes} {list_of_modules_irp}",
-	    "\t$(FC) $(FCFLAGS) -c $^ -o $@", ""
+            "{target_module_o}: {target_module_F90} | {list_of_includes} {list_of_modules}",
+	    '\t@printf "F: {short_target_module_F90} -> {short_target_module_o}\\n"',
+	    "\t@$(FC) $(FCFLAGS) -c $^ -o $@", ""
         ]
 
     l_cur = l_build if ninja else l_build_make
