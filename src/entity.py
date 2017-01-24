@@ -669,12 +669,9 @@ class Entity(object):
 
         import parsed_text
         # Move the variable to top, and add the text
-        l_builder_text_raw = [
-            x[1] for x in parsed_text.move_to_top_list(text, [Declaration, Implicit, Use])
-        ]
-        result.extend(
-            line.text for line in l_builder_text_raw
-            if not isinstance(line, (Begin_doc, End_doc, Doc, Cont_provider)))
+	parsed_text.move_to_top_list(text, [Declaration, Implicit, Use])
+
+        result.extend( line.text for _,line in text if not isinstance(line, (Begin_doc, End_doc, Doc, Cont_provider)))
 
         if command_line.do_profile:
             result += [

@@ -200,70 +200,101 @@ def get_parsed_text(filename, text, variables, subroutines, vtuple):
 
 ######################################################################
 def move_to_top_list(text, it):
-    'This function is Unpure'
-    'test will be modify'
+    # ( List[ List[Entity], Line], Iterator)
+    '''Move the all the element of List[ List[Entity], Line] of Line's Type containt in IT are the top of text.
 
-    assert type(text) == list
+    Note:
+        - The permutation neeed to be done following `it` order
+	- We can have `nested` subroutine / Function. (Because of interface)
+	- This function is called way to much. Is need to be efficient
+                      - This function is Unpure
+     		      - One pass over `text`
+
+
+   NB:
+	- I am not really proud of the Sentinel value for the deleted,
+	  but I waste already so much time on more cleaver but not working solution...
+   '''
+
     assert set(it).issubset([NoDep, Declaration, Implicit, Use, Cont_provider])
-
-    from collections import defaultdict
-    d_permutation = defaultdict(list)
 
     # ~ # ~ # ~
     # G e t  P e r m u t a t i o n
     # ~ # ~ # ~   
 
-    inside = False
+    from collections import defaultdict
+    d_permutation = defaultdict(list)
+    # Type:List(begin, Line)
+    # We will insert the Line at begin position later on 
+
+    l_begin = []
+
     for i, (l_var, line) in enumerate(text):
         t = type(line)
-        if t in [Begin_provider, Program, Subroutine, Function]:
-            begin = i
-            inside = True
+	
+        if t in [Begin_provider, Module,Program, Subroutine, Function]:
+            l_begin.append(i)
         elif t in [End_provider, End]:
-            inside = False
-        elif inside and t in it:
-            d_permutation[t].append([begin, (l_var, line), i])
+	    l_begin.pop()
+
+        elif l_begin and t in it:
+            d_permutation[t].append( (l_begin[-1], [l_var, line]) )
+	    # Put the sentinel, will be deleted after the insertion
+	    text[i] = None	
 
     # ~ # ~ # ~
     # O r d e r  t h e m
     # ~ # ~ # ~   
-
+    # We need to do the permutation in the correct order
     d_insert = defaultdict(list)
-    d_remove = defaultdict(list)
     for t in reversed(it):
-        for begin, tline, idx_remove in d_permutation[t]:
+        for begin, tline in d_permutation[t]:
             d_insert[begin].append(tline)
-            d_remove[begin].append(idx_remove)
 
     # ~ # ~ # ~
     # D o  t h e m
     # ~ # ~ # ~   
-
-    for idx in sorted(d_remove.keys()):
-
-        padding = 0
+    # Because idx are sorted, it's easy to do the insert part of the move
+    # Just pad each insert by the number of precedent insert
+    padding = 0
+    for idx in sorted(d_insert.keys()):
         for tline in d_insert[idx]:
             text.insert(idx + padding + 1, tline)
             padding += 1
 
-        for idx_remove in sorted(d_remove[idx]):
-            text.pop(idx_remove + padding)
-            padding += -1
-    return text
+    # Now do the Delete part of the move. Fortunatly we put a sentinel to know the line to delete
+    for i in reversed(xrange(len(text))):
+	if text[i] is None:
+		del text[i]
 
 
-def parsed_moved_to_top(parsed_text):
-    'This subroutine is unpur:'
-    '  inout(parsed_text)'
+def move_interface(parsed_text,s_type=(Use,Implicit,Declaration,Subroutine,Function,Module)):
+   # ( List[ List[Entity], Line], Iterator)
+   '''Move everything containt into 'interface' below the first instance of s_type who preced it
 
-    l = [NoDep, Declaration, Implicit, Use, Cont_provider]
-    for _, text in parsed_text:
-        move_to_top_list(text, l)
+   Note:
+	= This function is unpur
+   '''
 
+   # Get the born of the interface	
+   i_begin =  [ i   for i, (_,  line) in enumerate(parsed_text) if isinstance(line,Interface)  ]
+   i_end   =  [ i+1 for i, (_, line) in  enumerate(parsed_text) if isinstance(line,End_interface) ]
+
+   # Get the begin of the insert
+   i_insert = [] 
+   for begin in i_begin:
+	i_insert.append(next(i+1 for i in range(begin,-1,-1) if isinstance(parsed_text[i][1], s_type)))
+
+    # Do the insert and the delete in one passe
+   for insert, begin, end in zip(i_insert,i_begin,i_end):
+		parsed_text[insert:insert]  = parsed_text[begin:end]
+
+		padding = end-begin
+		parsed_text[begin+padding:end+padding] = []	
 
 ######################################################################
 def build_sub_needs(parsed_text, d_subroutine):
-    #(List[ Tuple[List[Entity], Tuple[int,List[Line]] ]]) -> None
+    #(List[ Tuple[List[Entity], Tuple[int,List[Line]] ]], Dict[str:Sub]) -> None
     '''Set the needs, and provides arguements of Routine present in parsed_text
     
     Note:
@@ -299,8 +330,10 @@ def add_subroutine_needs(parsed_text, subroutines):
 
 ######################################################################
 def move_variables(parsed_text):
+    #(List[ Tuple[List[Entity], Tuple[int,List[Line]] ]]
     '''Move variables into the top of the declaraiton'''
 
+  
     def func(filename, text):
         result = []
         append = result.append
@@ -313,8 +346,17 @@ def move_variables(parsed_text):
         old_elsevars = []
         revtext = list(text)
         revtext.reverse()
+  
+	skip_interface = False
         try:
             for vars, line in revtext:
+		if type(line) in [Interface, End_interface]:
+			skip_interface = not skip_interface
+		
+		if skip_interface:
+			append(([], line))
+			continue
+
                 if type(line) in [End_provider, End]:
                     varlist = []
                     append(([], line))
@@ -357,7 +399,10 @@ def move_variables(parsed_text):
                     varlist += vars
                     append(([], line))
         except:
-            error.fail(line, "Unable to parse file")
+	    from util import logger
+            logger.error("Unable to parse file %s", line)
+	    import sys
+	    sys.exit(1)
 
         result.reverse()
 
@@ -369,7 +414,7 @@ def move_variables(parsed_text):
         varlist = []
         try:
             for vars, line in text:
-                if vars != []:
+                if vars:
                     vars = uniquify(vars)
                 if type(line) in [Begin_provider, Program, Subroutine, Function]:
                     varlist = list(vars)

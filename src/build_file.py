@@ -183,6 +183,7 @@ def create_build_compile(t, l_module, l_ext_modfile=[], ninja=True):
 
     # Expensive and stupid. We can create a dict to do the loockup only once 
     for m in t.needed_modules_usr:
+		# m is name
 		for x in l_module:
 			if m in x.gen_mod and x.filename != t.filename:
 				needed_modules.append("%s.irp.o" %  x.filename)

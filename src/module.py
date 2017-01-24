@@ -134,8 +134,16 @@ class Fmodule(object):
 
             result = []
             variable_list = []
- 
+	    skip_interface = False
             for vars, line in text:
+		if type(line) in [Interface, End_interface]:
+			skip_interface = not skip_interface
+
+		if skip_interface:
+			result.append((vars, line))
+			continue
+
+
                 if type(line) in [Subroutine, Function, Program]:		
                     #Deep copy...	
                     variable_list = list(vars)
@@ -152,12 +160,10 @@ class Fmodule(object):
 	    '''Extract the global declaration statement and module use form the declaration of function. '''
 
             inside = 0
-            result = []
-            dec = []
-            use = [] 
-	    module = []
+            result,dec,use,module = [],[],[],[]
 
             for vars, line in text:
+		
                 if isinstance(line, (Subroutine, Function, Program,Interface,Module)):
                     inside += 1
 
@@ -184,7 +190,7 @@ class Fmodule(object):
 
         result = remove_providers(self.text)
         result = modify_functions(result)
-
+        
         from collections import namedtuple
         Residual_text_use_dec = namedtuple('Residual_text_use_dec', ['use', 'module', 'dec', 'result'])
 
@@ -223,7 +229,7 @@ class Fmodule(object):
 	if len(l) != len(uniquify(l)):
 		raise NotImplementedError
 
-        return [" %s" % line.text for _, line in self.residual_text_use_dec.dec]
+        return l
 
     @irpy.lazy_property
     def residual_text(self):
@@ -235,8 +241,12 @@ class Fmodule(object):
             result += map(lambda x: ([], Simple_line(line.i, x, line.filename)),
                           build_call_provide(vars, self.d_all_variable))
 
-        from parsed_text import move_to_top_list
-        return  [line.text for _, line in move_to_top_list(result, [Declaration, Implicit, Use])]
+
+        from parsed_text import move_to_top_list, move_interface
+        move_to_top_list(result, [Declaration, Implicit, Use])
+	move_interface(result)
+
+        return  [line.text for _, line in result]
 
     @irpy.lazy_property
     def needed_modules(self):

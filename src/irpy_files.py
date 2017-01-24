@@ -223,13 +223,9 @@ class Irpy_comm_world(object):
     @irpy.lazy_property
     def t_filename_parsed_text(self):
 	'''(filename,parsed_text)'''
-        import parsed_text
         d_entity = self.d_entity
         d_routine = self.d_routine
 
-        # ~ # ~ # ~
-        # F i r s t  R o u n d
-        # ~ # ~ # ~   
         import parsed_text
 	vtuple = [(v, s.same_as, s.regexp) for v, s in d_entity.iteritems()]
         def worker_parsed(filename_text):
@@ -238,14 +234,21 @@ class Irpy_comm_world(object):
 
         parsed_text_0 = parmap(worker_parsed, self.t_filename_preprocessed_text)
 
+	
+	from irpf90_t import NoDep,Declaration,Implicit,Use,Cont_provider
+	def moved_to_top_l(ptext):
+		 l = [NoDep, Declaration, Implicit, Use, Cont_provider]
+ 		 for _, text in ptext:
+      			parsed_text.move_to_top_list(text, l)
+
         #Touch routine
         parsed_text.build_sub_needs(parsed_text_0, d_routine)
-        parsed_text.parsed_moved_to_top(parsed_text_0)
+        moved_to_top_l(parsed_text_0)
 
         parsed_text_1 = parsed_text.add_subroutine_needs(parsed_text_0, d_routine)
         parsed_text_1 = parsed_text.move_variables(parsed_text_1)
-        
-	parsed_text.parsed_moved_to_top(parsed_text_1)
+       
+	moved_to_top_l(parsed_text_1)
 
         parsed_text.check_opt(parsed_text_1)
         parsed_text_1 = parsed_text.perform_loop_substitutions(parsed_text_1)
