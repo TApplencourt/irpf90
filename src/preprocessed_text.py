@@ -883,6 +883,7 @@ def remove_ifdefs(text):
 
 ######################################################################
 def check_OpenMP(text):
+    'Not working!'
     assert type(text) == list
     inside_openmp = False
     for line in text:
@@ -895,8 +896,8 @@ def check_OpenMP(text):
             elif buffer[1] == "end" and buffer[2] == "parallel":
                 inside_openmp = False
 
-        if inside_openmp and isinstance(line, (Provide_all, Provide, Touch, SoftTouch)):
-                logger.error("%s is not allowed in an OpenMP block: %s" % (type(line),line))
+#        if inside_openmp and isinstance(line, (Provide_all, Provide, Touch, SoftTouch)):
+#                logger.error("%s is not allowed in an OpenMP block: %s" % (type(line),line))
 
     return text
 

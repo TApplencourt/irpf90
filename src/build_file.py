@@ -143,7 +143,7 @@ def create_build_link(t, l_irp_m, l_usr_m, l_ext_m, ninja=True):
 
     result_make = '\n'.join([
 	"{target}:{target_o} {irp_lib} | {list_of_module}",
-	'\t@printf "Link {short_target}\\n"',
+	'\t@printf "Link: {short_target}\\n"',
 	"\t@$(FC) $^ $(LIB) -o $@",
          ""])
 
