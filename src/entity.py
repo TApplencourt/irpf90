@@ -647,7 +647,7 @@ class Entity(object):
             text.append(([], Declaration(line_prototype.i,
                                          "  double precision :: irp_rdtsc, irp_rdtsc1, irp_rdtsc2",
                                          line_prototype.filename)))
-            text.append(([], Simple_line(lline_prototype.i, "  irp_rdtsc1 = irp_rdtsc()",
+            text.append(([], Simple_line(line_prototype.i, "  irp_rdtsc1 = irp_rdtsc()",
                                          line_prototype.filename)))
 
         for vars, line in ps_text[begin + 1:end]:

@@ -99,7 +99,7 @@ def main():
 
     if command_line.do_profile:
         import profile
-        profile.run()
+        profile.run(comm_world.d_entity)
 
     if command_line.do_openmp:
 	comm_world.create_lock()
