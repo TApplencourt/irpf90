@@ -54,6 +54,17 @@ def main():
 
     comm_world = Irpy_comm_world()
 
+    if command_line.do_graph:
+	comm_world.t_filename_parsed_text # Initialize entity need. Dirty I know.
+
+	print 'graph { '
+	for name,entity in comm_world.d_entity.items():
+		if entity.needs:
+			print '   {0} -> {1}'.format(name, ' '.join(entity.needs))
+	print '}'
+	return
+
+
     if command_line.do_preprocess:
         for filename, text in comm_world.preprocessed_text:
 	  if filename in command_line.preprocessed:
@@ -86,7 +97,6 @@ def main():
     comm_world.create_touches()
     comm_world.create_man()
 
-    print 'Done'
     if command_line.do_profile:
         import profile
         profile.run()
