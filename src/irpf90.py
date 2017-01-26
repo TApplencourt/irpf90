@@ -57,10 +57,10 @@ def main():
     if command_line.do_graph:
 	comm_world.t_filename_parsed_text # Initialize entity need. Dirty I know.
 
-	print 'graph { '
+	print 'digraph { '
 	for name,entity in comm_world.d_entity.items():
 		if entity.needs:
-			print '   {0} -> {1}'.format(name, ' '.join(entity.needs))
+			print '   %s -> { %s } ' % (name, ' ; '.join(entity.needs))
 	print '}'
 	return
 
