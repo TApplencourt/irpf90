@@ -109,7 +109,8 @@ def get_parsed_text(filename, text, variables, subroutines, vtuple):
             l = filter(lambda x: x not in varlist, l)
             for v in l:
                 if v not in variables:
-                    error.fail(line, "Variable %s is unknown" % (v))
+	             logger.error("Variable %s is unknown (%s)" % (v,line))
+		     sys.exit(1)
 
             append(Parsed_text(l, Provide(line.i, "", line.filename)))
             append(Parsed_text(l, Simple_line(line.i, "!%s" % (line.text), line.filename)))
@@ -119,6 +120,8 @@ def get_parsed_text(filename, text, variables, subroutines, vtuple):
             for v in l:
                 if v not in variables:
                     error.fail(line, "Variable %s is unknown" % (v))
+		    sys.exit(1)
+
             l = map(lambda x: "-%s" % (x), l)
             append(Parsed_text(l, Simple_line(line.i, "!%s" % (line.text), line.filename)))
         elif type(line) in [Touch, SoftTouch]:
