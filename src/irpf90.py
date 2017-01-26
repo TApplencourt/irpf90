@@ -41,36 +41,36 @@ def main():
 
     if command_line.do_help:
         command_line.usage()
-	return 
+        return 
     if command_line.do_version:
         from version import version
         print version
-	return 
+        return 
 
     if command_line.do_init:
-	from build_file import create_generalmakefile
-	create_generalmakefile(command_line.do_ninja)
-	return
+        from build_file import create_generalmakefile
+        create_generalmakefile(command_line.do_ninja)
+        return
 
     comm_world = Irpy_comm_world()
 
     if command_line.do_graph:
-	comm_world.t_filename_parsed_text # Initialize entity need. Dirty I know.
+        comm_world.t_filename_parsed_text # Initialize entity need. Dirty I know.
 
-	print 'graph { '
-	for name,entity in comm_world.d_entity.items():
-		if entity.needs:
-			print '   {0} -> {1}'.format(name, ' '.join(entity.needs))
-	print '}'
-	return
+        print 'graph { '
+        for name,entity in comm_world.d_entity.items():
+            if entity.needs:
+               print '   {0} -> {1}'.format(name, ' '.join(entity.needs))
+        print '}'
+        return
 
 
     if command_line.do_preprocess:
         for filename, text in comm_world.preprocessed_text:
-	  if filename in command_line.preprocessed:
+          if filename in command_line.preprocessed:
              for line in text:
                  print line.text
-	return
+        return
 
     if command_line.do_touch:
         for var in command_line.touched:
@@ -80,7 +80,7 @@ def main():
                 print "Touching %s invalidates the following entities:" % var
                 for x in sorted(d_entity[var].parents):
                     print "- %s" % (x, )
-	return
+        return
 
     if command_line.do_codelet:
         import profile
@@ -102,7 +102,7 @@ def main():
         profile.run(comm_world.d_entity)
 
     if command_line.do_openmp:
-	comm_world.create_lock()
+        comm_world.create_lock()
 
 if __name__ == '__main__':
     main()

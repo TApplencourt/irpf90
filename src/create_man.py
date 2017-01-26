@@ -168,7 +168,7 @@ def run(d_entity, d_routine):
 
 
     def worker(l):
-	filename, text = l
+        filename, text = l
         lazy_write_file(filename, text)
 
     parmap(worker, l_data_to_write)

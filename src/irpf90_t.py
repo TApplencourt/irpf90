@@ -63,9 +63,9 @@ class LineWithName(Line):
        l_name = l_buf[0].split()
 
        if len(l_name) < 2:
-        	import loger 
-		logger.error("Syntax Error: %s" % line)
-	        sys.exit(1)
+                import loger 
+                logger.error("Syntax Error: %s" % line)
+                sys.exit(1)
        return l_name.pop()
 
 l_type = [

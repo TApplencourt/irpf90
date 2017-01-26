@@ -42,15 +42,15 @@ class Entity(object):
 
     ############################################################
     def __init__(self, text, label, name=None, comm_world=None):
-	# (list[str], str, int, Irpy_comm_world)
-	'''Instantiate the object. 
+        # (list[str], str, int, Irpy_comm_world)
+        '''Instantiate the object. 
 
-	Args:
-		text: List of lines between BEGIN_PROVIDER and END_PROVIDER included
-		int:  An unique int id (usefull when profilling)
-		name: The name of the provider defined after the chosen BEGIN_PROVIDER statement
-		comm_world: A object to communicate we the external world.
-	'''
+        Args:
+                text: List of lines between BEGIN_PROVIDER and END_PROVIDER included
+                int:  An unique int id (usefull when profilling)
+                name: The name of the provider defined after the chosen BEGIN_PROVIDER statement
+                comm_world: A object to communicate we the external world.
+        '''
 
         assert type(text) == list
         assert len(text) > 0
@@ -59,7 +59,7 @@ class Entity(object):
         self.label = label
         self.text = text
 
-	self.same_as = text[0].filename[1]
+        self.same_as = text[0].filename[1]
         self.name = name if name else self.same_as
 
         self.comm_world = comm_world
@@ -70,27 +70,27 @@ class Entity(object):
     # ~ # ~ # ~
     @irpy.lazy_property
     def d_entity(self):
-	# () -> Dict[str,Entity]
+        # () -> Dict[str,Entity]
         '''Create an alias to the global dictionary of Entity.
 
-	Note: Be aware of the possiblity of Cyclic Dependency.
-	'''
+        Note: Be aware of the possiblity of Cyclic Dependency.
+        '''
         return self.comm_world.d_entity
 
     @irpy.lazy_property
     def cm_t_filename_parsed_text(self):
-	# () -> Tuple[str, Parsed_text]
+        # () -> Tuple[str, Parsed_text]
         '''Create an alias to the global tuple for parsed text
 
-	Note: self.comm_world.t_filename_parsed_text need d_entity. 
-		Be aware of the possibility of Cyclic Dependency
-	'''
+        Note: self.comm_world.t_filename_parsed_text need d_entity. 
+                Be aware of the possibility of Cyclic Dependency
+        '''
         return self.comm_world.t_filename_parsed_text
 
     @irpy.lazy_property
     def d_type_lines(self):
-	# () -> Dict[Line, Tuple[int,Line] ]
-  	'''Contruct a mapping table between the type of the line and the possition'''
+        # () -> Dict[Line, Tuple[int,Line] ]
+          '''Contruct a mapping table between the type of the line and the possition'''
         from collections import defaultdict
         d = defaultdict(list)
         for i, line in enumerate(self.text):
@@ -103,45 +103,45 @@ class Entity(object):
     # ~ # ~ # ~
     @irpy.lazy_property
     def is_main(self):
-	# () -> bool
-	'''Check if this Entity is the main one
-	
-	Exemple:
-		BEGIN_PROVIDER [pi, double precision] &
+        # () -> bool
+        '''Check if this Entity is the main one
+        
+        Exemple:
+                BEGIN_PROVIDER [pi, double precision] &
                 BEGIN_PROVIDER [e, double preision]
-	
-		return True for 'pi' and False for 'e'
-	'''
+        
+                return True for 'pi' and False for 'e'
+        '''
         return self.name == self.same_as
 
 
     @irpy.lazy_property
     def prototype(self):
-	# () -> Line
-	'''Find the declaration statement associated with the name of the provider
+        # () -> Line
+        '''Find the declaration statement associated with the name of the provider
 
-	Exemple:
-		BEGIN_PROVIDER [pi, double precision] &
-		BEGIN_PROVIDER [e, double preision]
+        Exemple:
+                BEGIN_PROVIDER [pi, double precision] &
+                BEGIN_PROVIDER [e, double preision]
 
-		if self.name == e, will return BEGIN_PROVIDER [e, double preision]
-	'''
+                if self.name == e, will return BEGIN_PROVIDER [e, double preision]
+        '''
 
-	d = self.d_type_lines
-	return next(line for _,line in d[Begin_provider]+d[Cont_provider] if line.filename[1] == self.name)
+        d = self.d_type_lines
+        return next(line for _,line in d[Begin_provider]+d[Cont_provider] if line.filename[1] == self.name)
 
 
     @irpy.lazy_property
     def others_entity_name(self):
-	# () -> List[str]
-	'''Extract the other entity-name defined'''
-	d = self.d_type_lines
-	return [line.filename[1] for _,line in d[Begin_provider]+d[Cont_provider] if not line.filename[1] == self.name]
+        # () -> List[str]
+        '''Extract the other entity-name defined'''
+        d = self.d_type_lines
+        return [line.filename[1] for _,line in d[Begin_provider]+d[Cont_provider] if not line.filename[1] == self.name]
 
 
     @irpy.lazy_property
     def doc(self):
-	# () -> List[str]
+        # () -> List[str]
         doc = [line.text.lstrip()[1:] for _,line in self.d_type_lines[Doc]]
         if not doc:
             logger.warning("Entity '%s' is not documented" % (self.name))
@@ -149,7 +149,7 @@ class Entity(object):
 
     @irpy.lazy_property
     def documented(self):
-	#() -> bool
+        #() -> bool
         return bool(self.doc)
 
     # ~ # ~ # ~
@@ -158,8 +158,8 @@ class Entity(object):
 
     @irpy.lazy_property_mutable
     def is_written(self):
-	#() -> bool
-	'''Check if it will be written on disk'''
+        #() -> bool
+        '''Check if it will be written on disk'''
         return any(self.d_entity[i].is_written for i in self.parents)
 
     @irpy.lazy_property
@@ -205,7 +205,7 @@ class Entity(object):
 
     @irpy.lazy_property_mutable
     def is_read(self):
-	'''Check if it  will be read from disk'''
+        '''Check if it  will be read from disk'''
         return any(self.d_entity[i].is_read for i in self.parents)
 
     @irpy.lazy_property
@@ -258,7 +258,7 @@ class Entity(object):
         if self.is_self_touched or any(self.d_entity[i].is_touched for i in self.children):
             return True
             
-	return False
+        return False
 
     # ~ # ~ # ~
     # INCLUDE, USE, CALL
@@ -266,8 +266,8 @@ class Entity(object):
 
     @irpy.lazy_property
     def includes(self):
-	# () -> str
-	'''Extract the name of include who need be to be include in this Entity'''
+        # () -> str
+        '''Extract the name of include who need be to be include in this Entity'''
         return [line.filename for _,line in self.d_type_lines[Include]]
 
     @irpy.lazy_property
@@ -277,12 +277,12 @@ class Entity(object):
 
     @irpy.lazy_property
     def calls(self):
-	'''Extract the name ofthe function called by the entity'''
+        '''Extract the name ofthe function called by the entity'''
 
-	def extract_name(line):
-		return line.text.split('(', 1)[0].split()[1].lower()
+        def extract_name(line):
+                return line.text.split('(', 1)[0].split()[1].lower()
 
-	return [extract_name(line) for _,line in self.d_type_lines[Call] ]
+        return [extract_name(line) for _,line in self.d_type_lines[Call] ]
 
     # ~ # ~ # ~
     # Array Dimension
@@ -290,19 +290,19 @@ class Entity(object):
 
     @irpy.lazy_property
     def dim(self):
-	# () -> List[str]
-	'''Extract the dimension of the needed array in a form of list of variable name
+        # () -> List[str]
+        '''Extract the dimension of the needed array in a form of list of variable name
 
-	Exemple:
-		BEGIN_PROVIDER [real, ao_num ]
-		-> []
+        Exemple:
+                BEGIN_PROVIDER [real, ao_num ]
+                -> []
 
-		BEGIN_PROVIDER [ real, ao_oneD_p, (ao_num) ]
-		-> ['ao_num']
+                BEGIN_PROVIDER [ real, ao_oneD_p, (ao_num) ]
+                -> ['ao_num']
 
-		BEGIN_PROVIDER [ real, ao_oneD_prim_p, (ao_num,ao_prim_num_max) ]
-		-> ['ao_num', 'ao_prim_num_max']
-	'''
+                BEGIN_PROVIDER [ real, ao_oneD_prim_p, (ao_num,ao_prim_num_max) ]
+                -> ['ao_num', 'ao_prim_num_max']
+        '''
 
         line = self.prototype.text.split('!')[0]
         buffer = line.replace(']', '').split(',', 2)
@@ -331,24 +331,24 @@ class Entity(object):
 
     @irpy.lazy_property
     def type(self):
-	# () -> str
-	'''Compute the fortran type code of the entity'''
+        # () -> str
+        '''Compute the fortran type code of the entity'''
 
         type_ = self.prototype.text.split(',')[0].split('[')[1].strip()
 
-	if not type_:
-	    logger.error( "Error in definition of %s." % (self.name))	 
-      	    sys.exit(1)
+        if not type_:
+            logger.error( "Error in definition of %s." % (self.name))         
+                  sys.exit(1)
 
-	if self.dim:
+        if self.dim:
             return "%s, allocatable" % (type_)
         else:
             return type_
 
     @irpy.lazy_property
     def header(self):
-	# () -> List[str]
-	'''Compute all the code needed to inistanticant the entity'''
+        # () -> List[str]
+        '''Compute all the code needed to inistanticant the entity'''
 
 
         name = self.name
@@ -360,7 +360,7 @@ class Entity(object):
             else:
                 str_ += " [:]"
 
-	l = [str_]
+        l = [str_]
         if self.dim and command_line.align != '1':
             l += ["  !DIR$ ATTRIBUTES ALIGN: %s :: %s" % (command_line.align, name)]
 
@@ -374,16 +374,16 @@ class Entity(object):
     @irpy.lazy_property
     def fmodule(self):
         # () -> str
-	'''Contruct the name of the module who will contain the entity'''
+        '''Contruct the name of the module who will contain the entity'''
         name = self.prototype.filename[0].replace('/', '__').split('.irp.f')[0]
         return '%s_mod' % name
 
     ############################################################
     @irpy.lazy_property
     def regexp(self):
-	# () -> Regex
+        # () -> Regex
         '''Compile a regex targeted to 'search' the name of this entity'''
-	import re
+        import re
         return re.compile(r"([^a-z0-9'\"_]|^)%s([^a-z0-9_]|$)" % (self.name), re.I).search
 
     # ~ # ~ # ~
@@ -392,10 +392,10 @@ class Entity(object):
 
     @irpy.lazy_property
     def toucher(self):
-	# () -> List[str]
-	'''Fabric the f90 routine who handle the cache invalidation'''
+        # () -> List[str]
+        '''Fabric the f90 routine who handle the cache invalidation'''
 
-	# Only one by EntityColleciton
+        # Only one by EntityColleciton
         if not self.is_main:
             return []
 
@@ -465,20 +465,20 @@ class Entity(object):
     ##########################################################
     @irpy.lazy_property
     def free(self):
-	# () -> List[ str ]
-	'''Compute an part of a subroutine used to free a variable'''
+        # () -> List[ str ]
+        '''Compute an part of a subroutine used to free a variable'''
 
         name = self.name
         result = ["!", 
                   "! >>> FREE %s" % (name), 
-		  "  %s_is_built = .False." % (self.same_as)]
+                  "  %s_is_built = .False." % (self.same_as)]
 
         if self.dim:
             result += [
                 "  if (allocated(%s)) then"%(name),
                 "    deallocate (%s)"%(name)]
             if command_line.do_memory:
-		result += "    print *, 'Deallocating %s'"%(name)
+                result += "    print *, 'Deallocating %s'"%(name)
 
             result += ["  endif"]
 
@@ -488,8 +488,8 @@ class Entity(object):
     ##########################################################
     @irpy.lazy_property
     def provider(self):
-	# () -> List[str]
-	'''Create the fortran90 code for the EntityCollection'''
+        # () -> List[str]
+        '''Create the fortran90 code for the EntityCollection'''
 
         if not self.is_main:
             return []
@@ -498,16 +498,16 @@ class Entity(object):
         same_as = self.same_as
 
         def dimsize(x):
-	    # (str) -> str
-	    '''Compute the number of element in the array'''
-	    try:
-	        b0, b1 = x.split(':')
-	    except ValueError:
-		return x
+            # (str) -> str
+            '''Compute the number of element in the array'''
+            try:
+                b0, b1 = x.split(':')
+            except ValueError:
+                return x
 
-	    b0_is_digit =  b0.replace('-', '').isdigit()
-	    b1_is_digit =  b1.replace('-', '').isdigit() 
-	   
+            b0_is_digit =  b0.replace('-', '').isdigit()
+            b1_is_digit =  b1.replace('-', '').isdigit() 
+           
 
             if b0_is_digit and b1_is_digit:
                 size = str(int(b1) - int(b0) + 1)
@@ -627,7 +627,7 @@ class Entity(object):
         # Get the raw text for the builder
         # ~#~#~#~#~#
 
-        #Next return the first element of the iterator	
+        #Next return the first element of the iterator        
         ps_text = next(text for filename, text in self.cm_t_filename_parsed_text
                        if self.prototype.filename[0].startswith(filename))
         begin = next(i for i, (_, line) in enumerate(ps_text)
@@ -669,7 +669,7 @@ class Entity(object):
 
         import parsed_text
         # Move the variable to top, and add the text
-	parsed_text.move_to_top_list(text, [Declaration, Implicit, Use])
+        parsed_text.move_to_top_list(text, [Declaration, Implicit, Use])
 
         result.extend( line.text for _,line in text if not isinstance(line, (Begin_doc, End_doc, Doc, Cont_provider)))
 

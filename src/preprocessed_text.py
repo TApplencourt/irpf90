@@ -117,7 +117,7 @@ def get_canonized_text(text_lower):
 
 
 def get_type(i, filename, line, line_lower, line_lower_canonized, is_doc):
-    # ( int,str,str,str,str,bool) -> Irpf90_t	
+    # ( int,str,str,str,str,bool) -> Irpf90_t
     '''Find the type of a text line'''
     
     line = line.rstrip()
@@ -129,11 +129,11 @@ def get_type(i, filename, line, line_lower, line_lower_canonized, is_doc):
     # Handle archaic do loop of f77
     firstword = l_word[0]
     if firstword.isdigit():
-	l_word = l_word[1:]
+        l_word = l_word[1:]
         firstword = l_word[0]
 
     if firstword == "contains":
-	return [Contains(i, line, filename)], False
+        return [Contains(i, line, filename)], False
     if firstword == "end_doc":
         return [End_doc(i, line, filename)], False
 
@@ -151,8 +151,8 @@ def get_type(i, filename, line, line_lower, line_lower_canonized, is_doc):
     #label do-loop (outer: do i=1,sze)
     reg_do_lab = ur":\s+do\s+"
     if re.search(reg_do_lab,line_lower):
-	return [Do(i,line,filename)], is_doc
-   	
+        return [Do(i,line,filename)], is_doc
+           
 
     lower_line = line_lower.strip()[1:]
 
@@ -170,7 +170,7 @@ def get_type(i, filename, line, line_lower, line_lower_canonized, is_doc):
         result = [Simple_line(i, line, filename)]
 
         logger.info("%s:"
-		    "irpf90 may not work with preprocessor directives. You can use"
+                    "irpf90 may not work with preprocessor directives. You can use"
                     "Irp_if ... Irp_else ... Irp_endif"
                     "instead of"
                     "#ifdef ... #else ... #endif"%line)
@@ -189,7 +189,7 @@ def get_type(i, filename, line, line_lower, line_lower_canonized, is_doc):
     # Detect errors
     if firstword == "dowhile":
         logger.error("%s 'do while' should be in 2 words." % Do(i, line, filename))
-	sys.exit(1)
+        sys.exit(1)
 
     return [Simple_line(i, line, filename)], is_doc
 
@@ -202,8 +202,8 @@ def save_and_execute(irpdir, scriptname, code, interpreter):
     ''' Save the script in irpdir/scriptname and Execute it
 
     Note:
-	The script are executed in the orginal directory of the .irp.f (aka '..')
-	and this directory is added to PYTHONPATH.
+        The script are executed in the orginal directory of the .irp.f (aka '..')
+        and this directory is added to PYTHONPATH.
     '''
 
     irpdir_scriptname = os.path.abspath(os.path.join(irpdir, scriptname))
@@ -213,11 +213,11 @@ def save_and_execute(irpdir, scriptname, code, interpreter):
     # Execute shell
     import util
     try:
-	text = util.check_output('PYTHONPATH=$PYTHONPATH:. %s %s' % (interpreter, irpdir_scriptname), shell=True, bufsize=-1, cwd=os.path.join(irpdir,'..'))
+        text = util.check_output('PYTHONPATH=$PYTHONPATH:. %s %s' % (interpreter, irpdir_scriptname), shell=True, bufsize=-1, cwd=os.path.join(irpdir,'..'))
     except:
-	util.logger.error("Something wrong append with embeded '%s' script:  %s"% (interpreter, irpdir_scriptname))
-	import sys
-	sys.exit(1)
+        util.logger.error("Something wrong append with embeded '%s' script:  %s"% (interpreter, irpdir_scriptname))
+        import sys
+        sys.exit(1)
 
     # Create the Line
     p = Preprocess_text(scriptname)
@@ -242,21 +242,21 @@ def execute_shell(text):
     import sys
     def fail(l, a, b):
         logger.error("%s In Begin_Shell, %s '%s'" % (l,a, b))
-	sys.exit(1)
+        sys.exit(1)
 
     for begin,end in zip(l_begin,l_end):
 
-	header = text[begin]
-	header_text = header.text
+        header = text[begin]
+        header_text = header.text
 
         for bracket in ['[', ']']:
               n = header_text.count(bracket)
               assert n <= 1, fail(header_text, "Too many", bracket)
               assert n >= 1, fail(header_text, "Missing", bracket)
-	else:
-	      interpreter = header_text[header_text.find('[')+1: header_text.find(']')].strip()
-	script = ['%s\n' % l.text for l in text[begin+1:end] ]
-	scriptname="%s_shell_%d" % (header.filename, header.i)
+        else:
+              interpreter = header_text[header_text.find('[')+1: header_text.find(']')].strip()
+        script = ['%s\n' % l.text for l in text[begin+1:end] ]
+        scriptname="%s_shell_%d" % (header.filename, header.i)
 
         l_output.append(save_and_execute(irpdir, scriptname, script,interpreter))
 
@@ -271,9 +271,9 @@ def execute_shell(text):
     l_end_include = [i+1 for i in l_end]
     padding = 0
     for begin,end, out in zip(l_begin,l_end_include,l_output):
-	text_new[begin+padding:end+padding] = out
-	padding += len(out) - (end-begin)
-	
+        text_new[begin+padding:end+padding] = out
+        padding += len(out) - (end-begin)
+        
     return text_new
 
 
@@ -407,31 +407,31 @@ def remove_comments(text, form):
     '''Remove all comments
 
     Note:
-	This function is unpur
+        This function is unpur
     '''
     result = []
 
     def remove_after_bang(str_):
-	# str -> str
-	i_bang = str_.find('!')
-	
-	if i_bang == -1:
-		return str_
-	else:
-		sentinel, inside  = None, False
-		for i,c in enumerate(str_):
-			if c == '"' or c == "'":
-				if not inside:
-					inside = True
-					sentinel = c
-				elif sentinel == c:
-					inside = False
+        # str -> str
+        i_bang = str_.find('!')
+        
+        if i_bang == -1:
+                return str_
+        else:
+                sentinel, inside  = None, False
+                for i,c in enumerate(str_):
+                        if c == '"' or c == "'":
+                                if not inside:
+                                        inside = True
+                                        sentinel = c
+                                elif sentinel == c:
+                                        inside = False
 
-			elif c == '!' and not inside:
-				return str_[:i].strip()
-				
-		return str_
-	
+                        elif c == '!' and not inside:
+                                return str_[:i].strip()
+                                
+                return str_
+        
 
     if form == Free_form:
         for line in text:
@@ -442,10 +442,10 @@ def remove_comments(text, form):
             else:
                 newline = line.text.lstrip()
                 if (newline != "" and newline[0] != "!#"):
-		    text = remove_after_bang(line.text)
-		    if text:
-        	        line.text = text 
-    	                result.append(line)
+                    text = remove_after_bang(line.text)
+                    if text:
+                        line.text = text 
+                            result.append(line)
 
         return result
     else:
@@ -511,7 +511,7 @@ def irp_simple_statements(text):
     '''Processes simple statements'''
 
     def process_irp_rw(line, rw, t):
-	'''Read Write'''
+        '''Read Write'''
         assert type(line) == t
         buffer = line.text.split()
         if len(buffer) == 2:
@@ -652,7 +652,7 @@ def irp_simple_statements(text):
 
     def process_function(line):
         assert type(line) == Function
-	subname = line.subname
+        subname = line.subname
         length = len(subname)
         i = line.i
         f = line.filename
@@ -740,15 +740,15 @@ def process_old_style_do(text):
      DO 1 i=1,10'''
 
     def change_matching_enddo(begin, number):
-	for i,line in enumerate(text[begin+1:]):
-		if isinstance(line,(Continue,Enddo)) and line.text.split()[0] == number:
+        for i,line in enumerate(text[begin+1:]):
+                if isinstance(line,(Continue,Enddo)) and line.text.split()[0] == number:
                     text[begin+1+i] = Enddo(line.i, "  enddo", line.filename)
                     return
 
-	from util import logger
+        from util import logger
         logger.error(text[begin], "(%s) Old-style do loops should end with 'continue' or 'end do'" % text[begin])
-	from util import sys
-	sys.exit(1)
+        from util import sys
+        sys.exit(1)
 
     result = []
     for i in range(len(text)):
@@ -769,8 +769,8 @@ def process_old_style_do(text):
 ######################################################################
 def change_single_line_ifs(text):
     # List[Line] -> List[Line]
-    '''Changes:	`if (test) result`
-	into
+    '''Changes:        `if (test) result`
+        into
                 `if (test) then
                     result
                  endif`'''
@@ -785,9 +785,9 @@ def change_single_line_ifs(text):
             else:
                 buffer = line.text
                 begin = buffer.find('(')
-	        if begin == -1:
-			logger.error("No '(' in if statemnt: %s" % line)
-			sys.exit(1)
+                if begin == -1:
+                        logger.error("No '(' in if statemnt: %s" % line)
+                        sys.exit(1)
 
                 level = 0
                 instring = False
@@ -805,7 +805,7 @@ def change_single_line_ifs(text):
                         break
                 if level != 0:
                     logger.error("If statement not valid: %s (%s)" % (line, line.filename))
-		    sys.exit(1)
+                    sys.exit(1)
 
                 test = buffer[:end]
                 code = buffer[end:]
@@ -832,34 +832,34 @@ def check_begin_end(raw_text):
     '''
 
     d_block = {Enddo: [Do],
-	       Endif: [If],
-	       End_provider: [Begin_provider],
-	       End_doc: [Begin_doc],
-	       End: [Program, Subroutine, Function],
-	       End_module: [Module],
-	       End_interface: [Interface]}
+               Endif: [If],
+               End_provider: [Begin_provider],
+               End_doc: [Begin_doc],
+               End: [Program, Subroutine, Function],
+               End_module: [Module],
+               End_interface: [Interface]}
 
     from collections import defaultdict
     d_type = defaultdict(list)
 
     for line in raw_text:
-	d_type[type(line)].append(line)
+        d_type[type(line)].append(line)
     
     for t_end, l_begin in d_block.iteritems():
-	n_end = len(d_type[t_end])
-	n_begin = sum(len(d_type[t_begin]) for t_begin in l_begin)
+        n_end = len(d_type[t_end])
+        n_begin = sum(len(d_type[t_begin]) for t_begin in l_begin)
  
-	if n_end != n_begin:
+        if n_end != n_begin:
  
           if n_end > n_begin:
-	    logger.error("You have more close statement than open statement (%s) (%s)",line.filename,t_end)
-  	  else:
-	    logger.error('You have more end statement than open statenemt for (%s)  (%s)' %  (line.filename, t_end))
+            logger.error("You have more close statement than open statement (%s) (%s)",line.filename,t_end)
+            else:
+            logger.error('You have more end statement than open statenemt for (%s)  (%s)' %  (line.filename, t_end))
           
           for i in zip([l for i in l_begin for l in d_type[i]], d_type[t_end]):
                 logger.debug(i)
 
-	  sys.exit(1)
+          sys.exit(1)
 
 ######################################################################
 def remove_ifdefs(text):
@@ -911,14 +911,14 @@ class Preprocess_text(object):
     def text(self):
         with open(self.filename, 'r') as f:
             str_ = f.read()
-	
-	#Dirty thing. We will replace 'end program' by 'end subroutine'
-	#because afterward the program will be replaced by a subroutine...	
+        
+        #Dirty thing. We will replace 'end program' by 'end subroutine'
+        #because afterward the program will be replaced by a subroutine...        
 
-	import re
-	transform = re.compile(re.escape('end program'), re.IGNORECASE)
-	
-	return transform.sub('end subroutine', str_)
+        import re
+        transform = re.compile(re.escape('end program'), re.IGNORECASE)
+        
+        return transform.sub('end subroutine', str_)
 
     @irpy.lazy_property_mutable
     def text_align(self):
