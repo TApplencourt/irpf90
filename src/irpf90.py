@@ -55,12 +55,23 @@ def main():
     comm_world = Irpy_comm_world()
 
     if command_line.do_graph:
+	# Create a dot reprenstion of the dependency graph.
+	# Merge inside a subgraph the Entity provided together
 	comm_world.t_filename_parsed_text # Initialize entity need. Dirty I know.
+	from util import mangled
 
 	print 'digraph { '
+
+	from util import mangled
 	for name,entity in comm_world.d_entity.items():
-		if entity.needs:
+		if entity.is_main:
+
+		   if entity.needs:
 			print '   %s -> { %s } ' % (name, ' ; '.join(entity.needs))
+		   if entity.others_entity_name:
+       			print '   subgraph cluster%s {' % name
+		   	print '       %s ' % ' '.join([entity.name] + entity.others_entity_name)
+			print '   }'
 	print '}'
 	return
 
