@@ -34,7 +34,7 @@ regexps_re_string_sub = regexps.re_string.sub
 
 def find_variables_in_line(line, vtuple):
     line_lower = regexps_re_string_sub('', line.lower)
-    return [same_as for v, same_as, regexp in vtuple if v in line_lower and regexp(line_lower)]
+    return [v for v, regexp in vtuple if v in line_lower and regexp(line_lower)]
 
 
 def find_funcs_in_line(line, stuple):
@@ -96,7 +96,7 @@ def get_parsed_text(filename, text, variables, subroutines, vtuple):
             varlist.append(v)
 
             variable_list = find_variables_in_line(line, vtuple)
-            variable_list.remove(variables[v].same_as)
+            variable_list.remove(v)
 
             append(Parsed_text(variable_list, line))
 
@@ -459,6 +459,7 @@ def build_needs(parsed_text, subroutines, stuple, variables):
     # Needs and to_provide
     # ~#~#~#~#~#
 
+    # Loop of the main Entity
     for filename, text in parsed_text:
 
         l_begin = [i for i, (_, line) in enumerate(text) if isinstance(line, Begin_provider)]
@@ -485,6 +486,8 @@ def build_needs(parsed_text, subroutines, stuple, variables):
 
             entity.needs = uniquify(l_needs)
 
+
+    # Now do the Other entity
     for v in variables:
         main = variables[v].same_as
         if main != v:
@@ -492,11 +495,15 @@ def build_needs(parsed_text, subroutines, stuple, variables):
             variables[v].to_provide = variables[main].to_provide
 
     # ~#~#~#~#~#
-    # Needs and to_provide
+    # Needs_by
     # ~#~#~#~#~#
 
-    for v in variables:
-        variables[v].needed_by = []
+    # This a some dark vodou magic.
+    # The algo is:
+    #    - Initialise needed_by
+    #    - Create the pointer copy
+    #   -  Add the value (so it add also to the pointer reference...)
+    
     for v in variables:
         main = variables[v].same_as
         if main != v:
@@ -508,8 +515,7 @@ def build_needs(parsed_text, subroutines, stuple, variables):
             for x in var.needs:
                 variables[x].needed_by.append(var.same_as)
 
-    for v in variables:
-        var = variables[v]
+    for var in variables.values():
         var.needed_by = uniquify(var.needed_by)
 
 ######################################################################

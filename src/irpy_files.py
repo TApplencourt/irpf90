@@ -114,7 +114,7 @@ class Irpy_comm_world(object):
 		Ent_part = partial(Entity,buf,icount,comm_world=self)
 
 		ent = Ent_part()
-		l_ent += [ent] + [Ent_part(other) for other in ent.others_entity_name]
+		l_ent += [ent] + [Ent_part(name) for name in ent.others_entity_name]
 
 	# O(2) but who care
 	l_duplicate = [x for x in l_ent if l_ent.count(x) > 1]
@@ -227,7 +227,7 @@ class Irpy_comm_world(object):
         d_routine = self.d_routine
 
         import parsed_text
-	vtuple = [(v, s.same_as, s.regexp) for v, s in d_entity.iteritems()]
+	vtuple = [(v, s.regexp) for v, s in d_entity.iteritems()]
         def worker_parsed(filename_text):
             filename, text = filename_text
             return parsed_text.get_parsed_text(filename, text, d_entity, d_routine, vtuple)

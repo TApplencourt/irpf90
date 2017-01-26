@@ -691,6 +691,11 @@ class Entity(object):
         #Set by parsed_text.build_needs(...)
         raise AttributeError
 
+    @irpy.lazy_property_mutable
+    def needed_by(self):
+        #Set by parsed_text.build_needs(...)
+	return []
+
     @irpy.lazy_property
     def children(self):
 
