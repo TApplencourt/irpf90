@@ -167,6 +167,7 @@ class Entity(object):
         if not self.is_main:
             result = []
         else:
+	    from util import mangled
             name = self.name
             result = [ \
             "subroutine writer_%s(irp_num)"%(name),
@@ -184,7 +185,7 @@ class Entity(object):
             "  if (.not.%s_is_built) then"%(self.same_as),
             "    call provide_%s"%(self.same_as),
             "  endif" ]
-            result += map(lambda x: "  call writer_%s(irp_num)" % (x), self.needs)
+            result += map(lambda x: "  call writer_%s(irp_num)" % (x), mangles(self.needs))
             result += [ \
             "  irp_is_open = .True.",
             "  irp_iunit = 9",
@@ -213,6 +214,7 @@ class Entity(object):
         if not self.is_main:
             result = []
         else:
+	    from util import mangled
             name = self.name
             result = [ \
             "subroutine reader_%s(irp_num)"%(name),
@@ -226,7 +228,7 @@ class Entity(object):
                 result += [\
                 "  character*(%d) :: irp_here = 'reader_%s'"%(length,name),
                 "  call irp_enter(irp_here)" ]
-            result += map(lambda x: "  call reader_%s(irp_num)" % (x), self.needs)
+            result += map(lambda x: "  call reader_%s(irp_num)" % (x), mangled(self.needs))
             result += [ \
             "  irp_is_open = .True.",
             "  irp_iunit = 9",

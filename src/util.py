@@ -285,6 +285,10 @@ def build_dim(l_dim, colons=False):
 
     return "(%s)" % (",".join(l_dim_colons))
 
+def mangled(l_ent, d_ent):
+    # (List, Dict[str,Entity]) -> list
+    '''Create a uniq list of provider'''
+    return OrderedUniqueList(d_ent[name].same_as for name in l_ent)
 
 def build_use(l_ent, d_ent):
     # (List, Dict[str,Entity]) -> list
@@ -294,12 +298,13 @@ def build_use(l_ent, d_ent):
 def build_call_provide(l_ent, d_ent):
     # (List, Dict[str,Entity]) -> list
     '''Construct the fortran 90 call the provider needed by the list of entity'''
-    def fun(x):
+
+    # Get the corect name (in the case of multiple provider line)
+    l_same_as = mangled(l_ent,d_ent)
+    def bld_f90(x):
         return [ "  if (.not.%s_is_built) then" % x,
                  "    call provide_%s" % x,
                  "  endif"]
 
-    # Get the corect name (in the case of multiple provider line)
-    l_same_as = OrderedUniqueList(d_ent[x].same_as for x in l_ent)
-    return flatten(map(fun, l_same_as))
+    return flatten(map(bld_f90, l_same_as))
 
