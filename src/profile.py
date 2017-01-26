@@ -52,15 +52,8 @@ def build_rdtsc():
   file = open(filename,'w')
   file.write(rdtsc)
   file.close()
-#  def t():
-#    p = subprocess.Popen(["gcc","-O2",filename,"-c","-o","irp_rdtsc.o"])
-#    p.communicate()
-#    os.remove(filename)
-#
-#  threading.Thread(target=t).start()
 
-def build_module():
-  from variables import variables
+def build_module(variables):
   data = """
 module irp_timer
  double precision :: irp_profile(3,%(n)d) 
@@ -176,9 +169,7 @@ end
   file.write(data)
   file.close()
 
-def run():
-  build_module()
+def run(d_entity):
+  build_module(d_entity)
   build_rdtsc()
 
-if __name__ == "__main__":
-  build_rdtsc()

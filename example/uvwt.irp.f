@@ -1,4 +1,4 @@
-BEGIN_PROVIDER [ integer, t ]
+BEGIN_PROVIDER [integer, t ]
   t = u1+v+4
 END_PROVIDER
 
@@ -7,6 +7,7 @@ BEGIN_PROVIDER [integer,w]
 END_PROVIDER
 
 BEGIN_PROVIDER [ integer, v ]
+  implicit none
   v = u2+w+2
 END_PROVIDER
 
@@ -18,6 +19,7 @@ END_PROVIDER
 BEGIN_PROVIDER [ integer, u2 ]
   integer :: fu
   u2 = fu(d3,d4)
+  !df
 END_PROVIDER
 
 integer function fu(x,y)

@@ -47,7 +47,7 @@ re_decl    = re.compile( "".join( [ r"^\ *",
  r"|external *(::)?",
  r"|equivalence *(::)?",
  r"|type",
- r"|end ?type",
+ r"|endtype",
  r")[^=(]"
 ] ) )
 

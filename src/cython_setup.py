@@ -32,21 +32,10 @@ import os
 to_remove = """__init__.py cython_setup.py version.py command_line.py""".split()
 ext_modules = []
 
-files = os.listdir('.')
-for file in to_remove:
-  files.remove(file)
+for f in os.listdir('.') if f.emswith(".py") and not f in to_remove:
+   module = f.split('.')[0]
+   ext_modules.append(Extension(module,list(f)))
 
-for file in files:
-  if file.endswith(".py"):
-   module = file.split('.')[0]
-   ext_modules += [ Extension(module,[file]) ]
-
-setup(
-  name = 'IRPF90 extensions',
-  cmdclass = {'build_ext': build_ext},
-  ext_modules = ext_modules
-)
-
-
-
-
+setup(name = 'IRPF90 extensions',
+      cmdclass = {'build_ext': build_ext},
+      ext_modules = ext_modules)
