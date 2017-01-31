@@ -400,8 +400,9 @@ class Entity(object):
 	# Only one by EntityColleciton
         if not self.is_main:
             return []
-
-        parents = self.parents
+	
+	from util import mangled
+        parents = mangled(self.parents)
         name = self.name
 
         result = ["subroutine touch_%s" % (name)]
