@@ -256,7 +256,7 @@ def OrderedUniqueList(l):
     return sorted(set(l))
 
 def flatten(l_2d):
-    # (List [ List[Any] ]) -> List
+    # (List [ Iter[Any] ]) -> List
     '''Construct a copy of the 2d list collapsed into one dimension.
 
     Note:
@@ -287,7 +287,7 @@ def build_dim(l_dim, colons=False):
 
 def mangled(l_ent, d_ent):
     # (List, Dict[str,Entity]) -> list
-    '''Create a uniq list of provider'''
+    '''Create a uniq list of providier (merge the multione) '''
     return OrderedUniqueList(d_ent[name].same_as for name in l_ent)
 
 def build_use(l_ent, d_ent):
@@ -323,11 +323,21 @@ def che_merge(sets):
 
 
 def l_dummy_entity(d_entity):
+	# Dict[str:Entity] -> List[set] 
 	from itertools import combinations
-	l_candidate_botom = [ (i,j) for i,j in combinations(d_entity.keys(),2) if d_entity[i].children == d_entity[j].children]
-	l_dummy = [set([i,j]) for i,j in l_candidate_botom if d_entity[i].parents == d_entity[j].parents]
+	l_candidate_botom = [ (i,j) for i,j in combinations(d_entity.keys(),2) if d_entity[i].needs == d_entity[j].needs]
+	l_dummy = [set([i,j]) for i,j in l_candidate_botom if d_entity[i].needed_by == d_entity[j].needed_by]
 
-	return  che_merge(l_dummy)
+	return che_merge(l_dummy)
+	l_merge = che_merge(l_dummy)
+	return  [l_set for l_set in l_merge if all(d_entity[e].is_main for e in l_set)] 
 
+def split_l_set(l_set_org):
+	#(List[set] -> (List, Set)
+	'''Split the list of set into a list of Head and and the concetenad of all the tail
 
-
+	Note: Head and Tail a not defined in set. Head in one element of the set, and tail the rest.
+	'''
+        l_set = [set(s) for s in l_set_org]
+        l_main = [ s.pop() for s in l_set]
+        return l_main, set(flatten(l_set))

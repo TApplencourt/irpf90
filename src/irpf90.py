@@ -57,29 +57,89 @@ def main():
     if command_line.do_graph:
 	# Create a dot reprenstion of the dependency graph.
 	# Merge inside a subgraph the Entity provided together
+
 	comm_world.t_filename_parsed_text # Initialize entity need. Dirty I know.
-	from util import mangled, l_dummy_entity
 
-	print 'digraph { '
+	from util import l_dummy_entity, split_l_set
+	#print len(comm_world.d_entity)
+	#print sum(len(i.needs) for i in comm_world.d_entity.values())
+	#print l_dummy_entity(comm_world.d_entity)
+	#print len(l_dummy_entity(comm_world.d_entity))
+	#print sum(len(i) for i in l_dummy_entity(comm_world.d_entity))
 
-	from util import mangled
-	for name,entity in comm_world.d_entity.items():
-		if entity.is_main:
 
-		   if entity.needs:
-			print '   %s -> { %s } ' % (name, ' ; '.join(entity.needs))
-		   if entity.others_entity_name:
-       			print '   subgraph cluster%s {' % name
-		   	print '       %s ' % ' '.join([entity.name] + entity.others_entity_name)
-			print '   }'
+	l_main_usr =  set([entity for entity in comm_world.d_entity.values() if entity.is_main])
+        l_main_head_usr = set([entity for entity in l_main_usr if  entity.others_entity_name])
+	l_main_atomic_usr = l_main_usr - l_main_head_usr
 
-        for i,s in enumerate(l_dummy_entity(comm_world.d_entity)):
-		print '   subgraph cluster%s {' % i
-		print '       %s ' % ' '.join(s)
-		print '      color = blue'
-		print '   }'	
+	print 'digraph Full { '
+	for e in comm_world.d_entity.values():
+		if e.needs: 
+			print '   %s -> { %s } ' % (e.name, ' '.join(e.needs))
+	
+	print '}'
+	print ''
+
+	print 'digraph Small { '
+	print '   graph [ordering="out"];'
+        for e in l_main_head_usr:
+                print '   subgraph cluster%s {' % e.name
+                print '       %s ' % ' '.join([e.name] + e.others_entity_name)
+                print '   }'
+
+
+	
+        l_set_dummy_name= l_dummy_entity(comm_world.d_entity)
+        for i,s in enumerate(l_set_dummy_name):
+                print '   subgraph cluster%s {' % i
+                print '       %s ' % ' '.join(s)
+                print '      color = blue'
+                print '   }'
+
+
+	# We do exactly like the multi-provider.
+	l_main_dummy_name, s_exculde_dummy_name = split_l_set(l_set_dummy_name)
+	from util import flatten
+	l_dummy_name = flatten(l_set_dummy_name)
+	l_main_head_dummy = [comm_world.d_entity[name] for name in l_main_dummy_name]
+
+
+        # Optimisation
+	# 1) We merge the depency of multiple-provider. All entity into a multiple provider are the same.
+        # 2) For the automatic one, we draw only the arrow for one parent.
+
+	for e in (e for e in l_main_atomic_usr if e.needs and e.name not in l_dummy_name):
+                needs_filter = set(e.needs) - s_exculde_dummy_name
+                if set(e.needs) != needs_filter:
+                        needs_filter = set(e.needs) - s_exculde_dummy_name
+                        for s in needs_filter:
+                                if s in l_dummy_name:
+                                        print '   %s -> { %s } [color=blue, penwidth=2]' % (e.name, s)
+
+                                else:
+                                        print '   %s -> { %s }' % (e.name, s)
+                else:
+                        print '   %s -> { %s }' % (e.name, ' ; '.join(e.needs))
+
+	for e in (e for e in l_main_head_usr if e.needs and e.name not in l_dummy_name):
+		needs_filter = set(e.needs) - s_exculde_dummy_name
+                if set(e.needs) != needs_filter:
+                        needs_filter = set(e.needs) - s_exculde_dummy_name
+			for s in needs_filter:
+				if s in l_dummy_name:				
+                      			print '   %s -> { %s } [color=blue, penwidth=2]' % (e.name, s)
+
+				else:
+					print '   %s -> { %s } [penwidth=2]' % (e.name, s)
+                else:
+                        print '   %s -> { %s } [penwidth=2]' % (e.name, ' ; '.join(e.needs))
+
+        for e in (e for e in l_main_head_dummy if e.needs):
+                print '   %s -> { %s } [color=blue, penwidth=2]' % (e.name, ' ; '.join(e.needs))
+
     	print '}'
 
+	
 	return
 
 
