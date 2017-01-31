@@ -308,3 +308,26 @@ def build_call_provide(l_ent, d_ent):
 
     return flatten(map(bld_f90, l_same_as))
 
+def che_merge(sets):
+    #(List[Set] -> List[Set]
+    """Merge a list of set is they are not disjoint.
+    Note:
+	This will destry sets
+    """
+    results = []
+    upd, isd, pop = set.update, set.isdisjoint, sets.pop
+    while sets:
+        if not [upd(sets[0],pop(i)) for i in range(len(sets)-1,0,-1) if not isd(sets[0],sets[i])]:
+            results.append(pop(0))
+    return results
+
+
+def l_dummy_entity(d_entity):
+	from itertools import combinations
+	l_candidate_botom = [ (i,j) for i,j in combinations(d_entity.keys(),2) if d_entity[i].children == d_entity[j].children]
+	l_dummy = [set([i,j]) for i,j in l_candidate_botom if d_entity[i].parents == d_entity[j].parents]
+
+	return  che_merge(l_dummy)
+
+
+

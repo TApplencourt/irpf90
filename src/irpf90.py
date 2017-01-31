@@ -58,7 +58,7 @@ def main():
 	# Create a dot reprenstion of the dependency graph.
 	# Merge inside a subgraph the Entity provided together
 	comm_world.t_filename_parsed_text # Initialize entity need. Dirty I know.
-	from util import mangled
+	from util import mangled, l_dummy_entity
 
 	print 'digraph { '
 
@@ -72,7 +72,14 @@ def main():
        			print '   subgraph cluster%s {' % name
 		   	print '       %s ' % ' '.join([entity.name] + entity.others_entity_name)
 			print '   }'
-	print '}'
+
+        for i,s in enumerate(l_dummy_entity(comm_world.d_entity)):
+		print '   subgraph cluster%s {' % i
+		print '       %s ' % ' '.join(s)
+		print '      color = blue'
+		print '   }'	
+    	print '}'
+
 	return
 
 
