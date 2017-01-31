@@ -507,15 +507,15 @@ def build_needs(parsed_text, subroutines, stuple, variables):
     #    - Create the pointer copy
     #   -  Add the value (so it add also to the pointer reference...)
     
-#    for v in variables:
-#        main = variables[v].same_as
-#        if main != v:
-#            variables[v].needed_by = variables[main].needed_by
+    for v in variables:
+        main = variables[v].same_as
+        if main != v:
+            variables[v].needed_by = variables[main].needed_by
 
     for v in variables:
         var = variables[v]
-#        if var.is_main:
-        for x in var.needs:
+        if var.is_main:
+            for x in var.needs:
                 variables[x].needed_by.append(var.name)
 
     for var in variables.values():
