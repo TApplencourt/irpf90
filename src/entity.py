@@ -402,7 +402,7 @@ class Entity(object):
             return []
 	
 	from util import mangled
-        parents = mangled(self.parents)
+        parents = mangled(self.parents,self.d_entity)
         name = self.name
 
         result = ["subroutine touch_%s" % (name)]
