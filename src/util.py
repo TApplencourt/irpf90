@@ -24,169 +24,282 @@
 #   31062 Toulouse Cedex 4      
 #   scemama@irsamc.ups-tlse.fr
 
+
+# ~#~#~#~#~#
+#  L o g e r
+# ~#~#~#~#~#
+'''
+Level     Numeric value
+CRITICAL     50
+ERROR        40
+WARNING      30
+INFO         20
+DEBUG        10
+NOTSET        0
+'''
+import logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger('Irpf90')
+logger.setLevel(30)
+
+# ~#~#~#~#~#
+#  / /  _  R E L A T E D
+# ~#~#~#~#~#
+
+def chunkify(l,n_chunk):
+    # (List[any], int) -> List [ List[any] ]
+    '''Split the list on n_chunk'''
+    len_ = len(l)
+    n = max(1,  len_ / n_chunk )
+    return [ l[i:i + n] for i in xrange(0, len_, n) ]
+
+
+import multiprocessing
+def parmap(f, it, parallel=False):
+    # (Callable, Iterable, bool) -> List
+    '''Parallel version of the std map function
+    
+    The parallel flag is set to togle the // execusion
+        
+    Note:
+        - We try to use the Mulprocesses map is possible else we use our own
+        - The order of the sequence if concerved
+        - Will use all the processesor possible
+        - We return a List
+        - The traceback is loose if an error occur but a Exception is raise.
+    '''
+
+    if not parallel:
+       return map(f, it)
+
+    nproc = multiprocessing.cpu_count()
+
+    # ~!~!~!
+    # Parallelisation STD
+    # ~!~!~
+
+    # This 'hang' on Travis and I don't know why...
+    # https://docs.python.org/2/library/pickle.html#what-can-be-pickled-and-unpickled
+    #from cPickle import PicklingError
+    #try:
+    #         p = multiprocessing.Pool(nproc)
+    #           l_res = p.map(f, it,nproc)
+    #except PicklingError:
+    #        pass        
+    #else:
+    #        return l_res
+
+    # ~!~!~!
+    # Parallelisation By Us
+    # ~!~!~
+
+    # To optimize the // performance,
+    # we merge the task into chunk
+    # In this implementation, we minimizise the communication
+    # (aka 1 job by processor)
+
+    it_chunk = chunkify(l=it,n_chunk=nproc)
+    def F(chunk):
+        # (List[any]) -> (List[any])
+        '''Same as 'f' but for a chunck'''
+        return map(f,chunk)
+        
+
+    q_in = multiprocessing.JoinableQueue()
+    q_out = multiprocessing.Queue()
+    # All the worker will sepuku after reseaving this message
+    # Remove that we need to always put in `q_in` a not None value.
+    stop_condition = None
+
+    def worker():
+       # () -> None
+       '''Read a task from q_in, excute it, and store it in q_out
+
+       Note:
+          - We use 'F' and not 'f'. 
+          - The for loop will break when stop_contition occur
+          - We get, and put an idx to allow the possibility of ordering afterward
+          - We store any exeception, to raise her afterward
+       '''
+       for i, x in iter(q_in.get, stop_condition):
+
+            try:
+                result = F(x)
+            except BaseException as e:
+                t = e
+            else:        
+                   t = (i, result)
+
+            q_out.put(t)
+            q_in.task_done()
+
+       q_in.task_done()
+
+    # Process' creation
+    l_proc = [multiprocessing.Process(target=worker) for _ in range(nproc)]
+    for p in l_proc:
+        p.daemon = True
+        p.start()
+
+    # Add the job to the queue (Note we add an idx, this will all)
+    for i, x in enumerate(it_chunk):
+        q_in.put((i, x))
+
+    # Now add the stop contidion and join
+    # (Because q_in.get is blocking we don't need to join the queue before)
+    for _ in l_proc:
+        q_in.put(stop_condition)
+    q_in.join()
+
+    # Get all the chunk and join the process
+    l_res = [q_out.get() for _ in range(len(it_chunk))]   
+
+    for p in l_proc:
+        p.join()
+    
+    # Check if error have occured  
+    try:
+        from itertools import ifilter
+        e = next(ifilter(lambda t: isinstance(t,BaseException), l_res))
+    except StopIteration:
+           # Now we need first to order the result, and secondly to flatte it
+            return [item for _, chunk in sorted(l_res) for item in chunk]
+    else:
+        raise e
+
+# ~#~#~#~#~#
+#  I O  _  R E L A T E D
+# ~#~#~#~#~#
+import hashlib
 import os
-NTHREADS=1 #int(os.getenv('OMP_NUM_THREADS',1))
+def cached_file(filename, text):
+    # (str,str) -> bool
+    '''Check if file locatte at filename containt the same data as text
 
-def strip(x):
-  return x.strip()
+    Return:
+        True if data is the same, false otherwise
+    '''
 
-def lower(x):
-  return x.lower()
+    def digest(data):
+        # (str) -> str
+        '''compute an uniq data id'''
+        return  hashlib.md5(data).hexdigest()
 
-def same_file(filename,txt):
-  assert isinstance(filename,str)
-  if (type(txt) == list):
-    buffer = ''.join(txt)
-  else:
-    buffer = txt
-
-  try:
-    file = open(filename,"r")
-  except IOError:
-    return False
-  stream = file.read()
-  file.close()
-
-  if len(stream) != len(buffer):
-    return False
-  if stream != buffer:
-    return False
-  return True
-
-def build_dim(dim):
-  if len(dim) == 0:
-    return ""
-  else:
-    return "(%s)"%( ",".join(dim) )
-
-def build_dim_colons(v):
-  d = v.dim
-  if d == []:
-    return ""
-  else:
-    x = map(lambda x: ":", d)
-    return "(%s)"%(','.join(x))
-
-
-import error
-def find_subname(line):
-  buffer = line.lower
-  if not buffer.endswith(')'):
-    buffer += "()"
-  buffer = buffer.split('(')
-  buffer = buffer[0].split()
-  if len(buffer) < 2:
-    error.fail(line,"Syntax Error")
-  return buffer[-1]
-
-def make_single(l):
-  d = {}
-  for x in l:
-   d[x] = True
-  return d.keys()
-
-def flatten(l):
-  if type(l) == list:
-    result = []
-    for i in range(len(l)):
-      elem = l[i]
-      result += flatten(elem)
-    return result
-  else:
-    return [l]
-
-def dimsize(x):
-  assert isinstance(x,str)
-  buffer = x.split(':')
-  if len(buffer) == 1:
-    return x
-  else:
-    assert len(buffer) == 2
-    size = ""
-    b0, b1 = buffer
-    if b0.replace('-','').isdigit() and b1.replace('-','').isdigit():
-      size = str( int(b1) - int(b0) + 1 )
+    try:
+        text_ref = open(filename, 'rb').read()
+    except IOError:
+        return False
     else:
-      if b0.replace('-','').isdigit():
-        size = "(%s) - (%d)"%(b1,int(b0)-1)
-      elif b1.replace('-','').isdigit():
-        size = "(%d) - (%s)"%(int(b1)+1,b0)
-      else:
-        size = "(%s) - (%s) + 1"%(b1,b0)
-    return size
+        return digest(text_ref) == digest(text)
 
-def put_info(text,filename):
-  assert type(text) == list
-  if len(text) > 0:
-    assert type(text[0]) == tuple
-    from irpf90_t import Line
-    assert type(text[0][0]) == list
-    assert isinstance(text[0][1], Line)
-    lenmax = 80 - len(filename)
-    format = "%"+str(lenmax)+"s ! %s:%4s"
-    for vars,line in text:
-      line.text = format%(line.text.ljust(lenmax),line.filename,str(line.i))
-  return text
 
-import cPickle as pickle
-import os, sys
-def parallel_loop(f,source):
-  pidlist = range(NTHREADS)
+def lazy_write_file(filename, text, conservative=False,touch=False):
+    # (str, str, bool) -> None
+    '''Write data lazily in filename location.
 
-  src = [ [] for i in xrange(NTHREADS) ]
-  index = 0
-  try:
-    source = map( lambda x: (len(x[1]),(x[0], x[1])), source )
-    source.sort()
-    source = map( lambda x: x[1], source )
-  except:
-    pass
-  for i in source:
-    index += 1
-    if index == NTHREADS:
-      index = 0
-    src[index].append(i)
+    Note:
+        If convervative is set, we don't overwrite.
+    '''
 
-  thread_id = 0
-  fork = 1
-  r = range(0,NTHREADS)
-  for thread_id in xrange(1,NTHREADS):
-    r[thread_id], w = os.pipe()
-    fork = os.fork()
-    if fork == 0:
-      os.close(r[thread_id])
-      w = os.fdopen(w,'w')
-      break
+    if not os.path.exists(filename) or not cached_file(filename, text) and not conservative:
+        with open(filename, 'w') as f:
+            f.write(text)
+    elif touch:
+        os.utime(filename,None)
+
+def listdir(directory, abspath=False):
+    #(str, bool) -> List[str]
+    '''Replacement of the std:listdir but with the possibility to get the abosulte path'''
+
+    l_filename = os.listdir(directory)
+    if not abspath:
+        return l_filename
     else:
-      os.close(w)
-      r[thread_id] = os.fdopen(r[thread_id],'r')
-      pidlist[thread_id] = fork
-      thread_id = 0
+        return [os.path.abspath(os.path.join(directory, f)) for f in l_filename]
 
-  result = []
-  for filename, text in src[thread_id]:
-    result.append( (filename, f(filename,text)) )
-  result.sort()
+def check_output(*popenargs, **kwargs):
+    """Run command with arguments and return its output as a byte string.
+    Backported from Python 2.7 as it's implemented as pure python on stdlib.
+    >>> check_output(['/usr/bin/python', '--version'])
+    Python 2.6.2
+    """
+    import subprocess
+    process = subprocess.Popen(stdout=subprocess.PIPE, *popenargs, **kwargs)
+    output, unused_err = process.communicate()
+    retcode = process.poll()
+    if retcode:
+        cmd = kwargs.get("args")
+        if cmd is None:
+            cmd = popenargs[0]
+        error = subprocess.CalledProcessError(retcode, cmd)
+        error.output = output
+        raise error
+    return output
 
-  if fork == 0:
-    pickle.dump(result,w,-1)
-    w.close()
-    os._exit(0)
-  
-  for i in xrange(1,NTHREADS):
-    result += pickle.load(r[i])
-    r[i].close()
-    os.waitpid(pidlist[i],0)[1] 
-
-  return result
+# ~#~#~#~#~#
+#  L i s t 
+# ~#~#~#~#~#
 
 
+def uniquify(l,sort=False):
+    # (Iter, bool) -> List[Any]
+    '''Uniquify a immutable iterable. Don't preserve the order'''
+    r = list(set(l))
+    if not sort:
+        return r
+    else:
+        return sorted(r)
 
-if __name__ == '__main__':
-  print "10",dimsize("10") #-> "10"
-  print "0:10",dimsize("0:10") # -> "11"
-  print "0:x",dimsize("0:x")  # -> "x+1"
-  print "-3:x",dimsize("-3:x")  # -> "x+1"
-  print "x:y",dimsize("x:y")  # -> "y-x+1"
-  print "x:5",dimsize("x:5")  # -> "y-x+1"
+def OrderedUniqueList(l):
+    # (Iter, bool) -> List[Any]
+    '''Uniquify a immutable iterable. Don't preserve the order'''
+    return sorted(set(l))
+
+def flatten(l_2d):
+    # (List [ List[Any] ]) -> List
+    '''Construct a copy of the 2d list collapsed into one dimension.
+
+    Note:
+        -  We collapse in a C-style fashion (row_major).
+    '''
+
+    return [item for l_1d in l_2d for item in l_1d]
+
+
+# ~#~#~#~#~#
+#  I R P  _  R E L A T E D
+# ~#~#~#~#~#
+def build_dim(l_dim, colons=False):
+    # (List[str],bool) -> str
+    '''Contruct a valid fortran90 array dimension code from a list dimension
+
+    Exemple:
+        [4,8] -> (4,8) if not colons
+        [4,8] -> (:,:) if colons
+        
+    '''
+    if not l_dim:
+        return ""
+
+    l_dim_colons = [':'] * len(l_dim) if colons else l_dim
+
+    return "(%s)" % (",".join(l_dim_colons))
+
+
+def build_use(l_ent, d_ent):
+    # (List, Dict[str,Entity]) -> list
+    '''Contruct the fortran90 'use' statement for the list of entity'''
+    return OrderedUniqueList("  use %s" % d_ent[x].fmodule for x in l_ent)
+
+def build_call_provide(l_ent, d_ent):
+    # (List, Dict[str,Entity]) -> list
+    '''Construct the fortran 90 call the provider needed by the list of entity'''
+    def fun(x):
+        return [ "  if (.not.%s_is_built) then" % x,
+                 "    call provide_%s" % x,
+                 "  endif"]
+
+    # Get the corect name (in the case of multiple provider line)
+    l_same_as = OrderedUniqueList(d_ent[x].same_as for x in l_ent)
+    return flatten(map(fun, l_same_as))
 

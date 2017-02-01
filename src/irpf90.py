@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-#cscs /usr/bin/env python
 #   IRPF90 is a Fortran90 preprocessor written in Python for programming using
 #   the Implicit Reference to Parameters (IRP) method.
 #   Copyright (C) 2009 Anthony SCEMAMA 
@@ -25,95 +24,85 @@
 #   31062 Toulouse Cedex 4      
 #   scemama@irsamc.ups-tlse.fr
 
-
-
 import vim
-import os,sys
+import os, sys
 try:
-  wd = os.path.abspath(os.path.dirname(__file__))
-  sys.path.insert(0,(wd+"/../src/"))
+    wd = os.path.abspath(os.path.dirname(__file__))
+    sys.path.insert(0, (wd + "/../src/"))
 except:
-  pass
-sys.setcheckinterval(1000)
+    pass
 
 from command_line import command_line
+from irpy_files import Irpy_comm_world
 
 def main():
 
-  vim.install()
+    vim.install()
 
-  if command_line.do_help:
-    command_line.usage()
+    if command_line.do_help:
+        command_line.usage()
+        return 
+    if command_line.do_version:
+        from version import version
+        print version
+        return 
 
-  if command_line.do_version:
-    from version import version
-    print version
+    if command_line.do_init:
+        from build_file import create_generalmakefile
+        create_generalmakefile(command_line.do_ninja)
+        return
 
-  from init import init
-  if command_line.do_init:
-    init()
+    comm_world = Irpy_comm_world()
 
-  if command_line.do_preprocess:
-    init()
-    from preprocessed_text import preprocessed_text
-    for filename,text in preprocessed_text:
-      if filename in command_line.preprocessed:
-        for line in text:
-          print line.text
+    if command_line.do_graph:
+        comm_world.t_filename_parsed_text # Initialize entity need. Dirty I know.
+
+        print 'graph { '
+        for name,entity in comm_world.d_entity.items():
+            if entity.needs:
+               print '   {0} -> {1}'.format(name, ' '.join(entity.needs))
+        print '}'
+        return
 
 
-  if command_line.do_touch:
-    from variables import variables
-    for var in command_line.touched:
-      if var not in variables:
-        print "%s is not an IRP entity"%(var,)
-      else:
-        print "Touching %s invalidates the following entities:"%(var,)
-        parents = variables[var].parents
-        parents.sort()
-        for x in parents:
-          print "- %s"%(x,)
+    if command_line.do_preprocess:
+        for filename, text in comm_world.preprocessed_text:
+          if filename in command_line.preprocessed:
+             for line in text:
+                 print line.text
+        return
 
-  if command_line.do_codelet:
-     import profile
-     profile.build_rdtsc()
-     import codelet
-     codelet.run()
+    if command_line.do_touch:
+        for var in command_line.touched:
+            if var not in comm_world.d_entity:
+                print "%s is not an IRP entity" % var
+            else:
+                print "Touching %s invalidates the following entities:" % var
+                for x in sorted(d_entity[var].parents):
+                    print "- %s" % (x, )
+        return
 
-  if not command_line.do_run:
-     return
+    if command_line.do_codelet:
+        import profile
+        profile.build_rdtsc()
+        import codelet
+        codelet.run()
 
-  init()
+    if not command_line.do_run:
+        return
 
-  import irp_stack
-  irp_stack.create()
+    comm_world.create_buildfile(command_line.do_ninja)
+    comm_world.write_modules()
+   
+    comm_world.create_touches()
+    comm_world.create_man()
 
-  import makefile
-  makefile.create()
+    if command_line.do_profile:
+        import profile
+        profile.run(comm_world.d_entity)
 
-  from modules import modules, write_module
-  for m in modules.keys():
-    write_module(modules[m])
-
-  makefile.run()
-
-  import touches
-  touches.create()
-
-#  import checkpoint
-#  checkpoint.create()
-
-  import create_man
-  create_man.run()
-
-  if command_line.do_profile:
-    import profile
-    profile.run()
-
-  if command_line.do_openmp:
-    import locks
-    locks.create()
+    if command_line.do_openmp:
+        comm_world.create_lock()
 
 if __name__ == '__main__':
-  main()
-
+    main()

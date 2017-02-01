@@ -39,7 +39,7 @@ def install():
     file.close()
     if not os.access(VIM+"/syntax",os.F_OK):
       os.mkdir(VIM+"/syntax")
-    wd = os.path.abspath(os.path.dirname(__file__))+"/../vim"
+    wd = os.path.abspath(os.path.dirname(__file__))
     os.symlink(wd+"/irpf90.vim",VIM+"/syntax/irpf90.vim")
   except:
     pass

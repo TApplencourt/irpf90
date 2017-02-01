@@ -28,12 +28,13 @@
 import os
 import sys
 
-wd = os.path.abspath(os.path.dirname(__file__))
-from irpf90_t import mandir
-filename = sys.argv[1].lower()+".l"
-if filename not in os.listdir(mandir):
-   print "%s does not exist"%(sys.argv[1])
-   sys.exit(-1)
+if __name__ == "__main__":
+        from irpf90_t import mandir
+        entity = sys.argv[1].lower()
+        
+        filename = '%s.l'% entity
+        if filename not in os.listdir(mandir):
+           print "Error: `%s` does not exist"% entity
+           sys.exit(-1)
 
-os.system("man ./"+mandir+sys.argv[1].lower()+".l")
-
+        os.system("man %s" % os.path.join(mandir,filename))
