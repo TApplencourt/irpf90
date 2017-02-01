@@ -716,19 +716,15 @@ class Entity(object):
     ##########################################################
     @irpy.lazy_property
     def parents(self):
-        if not self.is_main:
-            return []
-
         result = []
         for x in self.needed_by:
             result.append(x)
-            try:
-                result += self.d_entity[x].parents
-            except RuntimeError:
-                pass  # Exception will be checked after
+            result += self.d_entity[x].parents
 
         result = OrderedUniqueList(result)
         if self.name in result:
             error.fail(self.prototype, "Cyclic dependencies:\n%s" % (str(self._parents)))
 
         return result
+
+

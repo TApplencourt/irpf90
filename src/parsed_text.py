@@ -64,10 +64,12 @@ def check_touch(variables, line, vars, main_vars):
     vars.sort()
     for x, y in zip(vars, all_others):
         if x != y:
-            message = "The following entities should be touched:\n"
+            message = "The following entities should be touched:"
             message = "\n".join([message] + map(lambda x: "- %s" % (x, ), all_others))
-            error.fail(line, message)
-
+	    from util import logger
+            logger.error("%s (%s)" % (message,line))
+	    import sys
+	    sys.exit(1)
 
 from collections import namedtuple
 Parsed_text = namedtuple('Parsed_text', ['varlist', 'line'])
@@ -383,7 +385,10 @@ def raise_entity(text):
  
 def move_variables(parsed_text):
     #(List[ Tuple[List[Entity], Tuple[int,List[Line]] ]]
-    '''Move variables into the top of the declaraiton'''
+    '''Move variables into the top of the declaraiton.
+
+   This need to be optimised to handle the fact that we can have multi-provider
+   '''
 
   
     def func(filename, text):
@@ -560,31 +565,36 @@ def build_needs(parsed_text, subroutines, stuple, variables):
     # ~#~#~#~#~#
     # Needs_by
     # ~#~#~#~#~#
+    from collections import defaultdict
+    d_needed_by = defaultdict(list)
+
+    d_needed_by2 = defaultdict(list)
 
     for v in variables:
-        variables[v].needed_by = []
+        var = variables[v]
+        for x in var.needs:
+            d_needed_by2[x].append(var.name)
+
+
     for v in variables:
         main = variables[v].same_as
         if main != v:
-            variables[v].needed_by = variables[main].needed_by
+            d_needed_by[v] = d_needed_by[main]
 
     for v in variables:
         var = variables[v]
         if var.is_main:
             for x in var.needs:
-                variables[x].needed_by.append(var.same_as)
+                d_needed_by[x].append(var.same_as)
 
-    for v in variables:
-        var = variables[v]
-	var.needed_by = uniquify(var.needed_by)
-
-#    for v in variables:
-#        var = variables[v]
-#        for x in var.needs:
-#            variables[x].needed_by.append(var.name)
-#
-#    for var in variables.values():
-#        var.needed_by = uniquify(var.needed_by)
+    from util import mangled
+    for v in d_needed_by:
+        d_needed_by[v] = uniquify(d_needed_by[v])
+	d_needed_by2[v] = uniquify(d_needed_by2[v])
+	
+    for v in d_needed_by:
+    	variables[v].needed_by = d_needed_by2[v]
+	variables[v].needed_by2 = d_needed_by2[v]
 
 ######################################################################
 from command_line import command_line
