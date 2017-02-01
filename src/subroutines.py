@@ -24,9 +24,49 @@
 #   31062 Toulouse Cedex 4      
 #   scemama@irsamc.ups-tlse.fr
 
-def main():
-  import irpf90_libs.irpf90
-  irpf90_libs.irpf90.main()
 
-main()
+from util import *
+from subroutine import *
+from variables import variables
+from variable  import Variable
+from irpf90_t import *
 
+def create_subroutines():
+  from preprocessed_text import preprocessed_text
+  result = {}
+  for filename, text in preprocessed_text:
+    buffer = []
+    inside = False
+    for line in text:
+      if type(line) in [ Subroutine, Function ]:
+        inside = True
+      if inside:
+        buffer.append(line)
+      if isinstance(line,End):
+        if inside:
+         v = Sub(buffer)
+         result[v.name] = v
+         buffer = []
+        inside = False
+  return result
+
+def create_called_by(subs,vars):
+  for s in subs.values() + vars.values():
+    if type(s) == Variable and s.same_as != s.name:
+        continue
+    for x in s.calls:
+      try:
+        subs[x].called_by.append(s.name)
+      except KeyError:
+        pass
+
+  for s in subs.values():
+    s.called_by = make_single(s.called_by)
+    s.called_by.sort()
+    
+subroutines = create_subroutines()
+create_called_by(subroutines,variables)
+
+if __name__ == '__main__':
+  for v in subroutines.keys():
+    print v

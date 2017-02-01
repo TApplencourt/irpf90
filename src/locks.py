@@ -25,44 +25,29 @@
 #   scemama@irsamc.ups-tlse.fr
 
 
+from command_line import command_line
+
 from irpf90_t import *
 from util import *
 from variables import variables
-from modules import modules
-
-FILENAME=irpdir+'irp_touches.irp.F90'
+FILENAME=irpdir+'irp_locks.irp.F90'
 
 def create():
   out = []
   l = variables.keys()
   l.sort
-  main_modules = filter(lambda x: modules[x].is_main, modules)
-  finalize = "subroutine irp_finalize_%s\n"%(irp_id)
-  for m in filter(lambda x: not modules[x].is_main, modules):
-    finalize += " use %s\n"%(modules[m].name)
   for v in l:
     var = variables[v]
-    var_in_main = False
-    for m in main_modules:
-      if var.fmodule == modules[m].name:
-        var_in_main = True
-        break
-    if not var_in_main:
-      if var.is_touched:
-        out += var.toucher
-      if var.dim != []:
-        finalize += "  if (allocated(%s)) then\n"%v
-        finalize += "    %s_is_built = .False.\n"%var.same_as
-        finalize += "    deallocate(%s)\n"%v
-        finalize += "  endif\n"
-  finalize += "end\n"
+    out += var.locker
 
-
-  if out != []:
-    out = map(lambda x: "%s\n"%(x),out)
-
-  out += finalize
-  
+  out += [
+"subroutine irp_init_locks_%s()"%(irp_id),
+" implicit none" ]
+  for v in l:
+    out += [ "  call irp_lock_%s(.True.)"%v ]
+    out += [ "  call irp_lock_%s(.False.)"%v ]
+  out += [ "end subroutine" ]
+  out = map(lambda x: "%s\n"%(x),out)
   if not same_file(FILENAME,out):
     file = open(FILENAME,'w')
     file.writelines(out)
@@ -70,4 +55,4 @@ def create():
 
 if __name__ == '__main__':
   create()
-
+  

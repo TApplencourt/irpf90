@@ -45,15 +45,22 @@ import subprocess
 import tempfile
 import os
 import threading
-from irpf90_t import irpdir
 
 def build_rdtsc():
-  filename = irpdir+"irp_rdtsc.c"
+  file,filename = tempfile.mkstemp()
+  filename += ".c"
   file = open(filename,'w')
   file.write(rdtsc)
   file.close()
+  def t():
+    p = subprocess.Popen(["gcc","-O2",filename,"-c","-o","irp_rdtsc.o"])
+    p.communicate()
+    os.remove(filename)
 
-def build_module(variables):
+  threading.Thread(target=t).start()
+
+def build_module():
+  from variables import variables
   data = """
 module irp_timer
  double precision :: irp_profile(3,%(n)d) 
@@ -97,10 +104,11 @@ subroutine irp_init_timer
  double precision :: irp_rdtsc, t0
  irp_profile = 0.d0
  irp_rdtsc_shift = 0.d0
- do i=1,1000000
+ do i=1,1000
    t0 = irp_rdtsc()
+   irp_rdtsc_shift = irp_rdtsc_shift + (irp_rdtsc()-t0)
  enddo
- irp_rdtsc_shift = 1.d-6*(irp_rdtsc()-t0)
+ irp_rdtsc_shift = 1.d-3*irp_rdtsc_shift
 %(text)s
 end
 
@@ -169,7 +177,9 @@ end
   file.write(data)
   file.close()
 
-def run(d_entity):
-  build_module(d_entity)
+def run():
+  build_module()
   build_rdtsc()
 
+if __name__ == "__main__":
+  build_rdtsc()

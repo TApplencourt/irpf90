@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env python
 #   IRPF90 is a Fortran90 preprocessor written in Python for programming using
 #   the Implicit Reference to Parameters (IRP) method.
 #   Copyright (C) 2009 Anthony SCEMAMA 
@@ -24,41 +24,29 @@
 #   31062 Toulouse Cedex 4      
 #   scemama@irsamc.ups-tlse.fr
 
-# Define auto-completion for bash
+from distutils.core import setup
+from distutils.extension import Extension
+from Cython.Distutils import build_ext
+import os
 
-function run ()
-{
-cat << EOF | exec python - $@
-import sys, os
+to_remove = """cython_setup.py version.py command_line.py""".split()
+ext_modules = []
 
-from irpf90_libs.irpf90_t import mandir
-filename = sys.argv[1].lower()+".l"
-if filename not in os.listdir(mandir):
-   print "%s does not exist"%(sys.argv[1])
-   sys.exit(-1)
+files = os.listdir('.')
+for file in to_remove:
+  files.remove(file)
 
-os.system("man ./"+mandir+sys.argv[1].lower()+".l")
-EOF
-}
+for file in files:
+  if file.endswith(".py"):
+   module = file.split('.')[0]
+   ext_modules += [ Extension(module,[file]) ]
 
-case "$0" in
-  *irpman)
-   if [[ -z $1 ]] ; then
-       echo "To activate auto-completion in bash:"
-       echo "source " $0
-   else
-      run $@
-   fi
-   ;;
+setup(
+  name = 'IRPF90 extensions',
+  cmdclass = {'build_ext': build_ext},
+  ext_modules = ext_modules
+)
 
-  *)
-   _irpman_complete()
-   {
-     local cur
-     COMPREPLY=()
-     cur=${COMP_WORDS[COMP_CWORD]}
-     COMPREPLY=( $(compgen -W "`[[ -f tags ]] && cat tags | cut -d'	' -f 1`" -- "$cur" ) )
-   } && complete -F _irpman_complete irpman
-   ;;
 
-esac
+
+
