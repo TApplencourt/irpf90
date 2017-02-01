@@ -34,7 +34,8 @@ regexps_re_string_sub = regexps.re_string.sub
 
 def find_variables_in_line(line, vtuple):
     line_lower = regexps_re_string_sub('', line.lower)
-    return [v for v, regexp in vtuple if v in line_lower and regexp(line_lower)]
+    #return [same_as for v,same_as, regexp in vtuple if v in line_lower and regexp(line_lower)]
+    return [v for v,same_as, regexp in vtuple if v in line_lower and regexp(line_lower)]
 
 
 def find_funcs_in_line(line, stuple):
@@ -97,6 +98,7 @@ def get_parsed_text(filename, text, variables, subroutines, vtuple):
 
             variable_list = find_variables_in_line(line, vtuple)
             variable_list.remove(v)
+#	    variable_list.remove(variables[v].same_as)
 
             append(Parsed_text(variable_list, line))
 
@@ -110,6 +112,7 @@ def get_parsed_text(filename, text, variables, subroutines, vtuple):
             for v in l:
                 if v not in variables:
 	             logger.error("Variable %s is unknown (%s)" % (v,line))
+		     import sys
 		     sys.exit(1)
 
             append(Parsed_text(l, Provide(line.i, "", line.filename)))
@@ -332,6 +335,52 @@ def add_subroutine_needs(parsed_text, subroutines):
 
 
 ######################################################################
+def raise_entity(text):
+    #(List[ Tuple[List[Entity], Tuple[int,List[Line]] ]]
+    '''Working progress'''
+    l_token = []
+    d_level_var = dict()
+    d_level_var[0] = []
+
+    skip_interface = False
+    lvl = 0
+
+   
+    for i,(e, line) in enumerate(text):
+	type_ = type(line)
+
+        if type_ in [Interface, End_interface]:
+             skip_interface = not skip_interface
+
+        if skip_interface:
+	     continue
+
+        if type_ in [Begin_provider, Program, Subroutine, Function,If]:
+		l_token.append(i)
+		lvl += 1
+		d_level_var[lvl] = e[:]
+	
+	elif type_ in [End_provider, End, Endif]:
+		i = l_token.pop()
+		text[i] = ( d_level_var[lvl],text[i][1])
+
+		lvl += -1
+
+	elif type_ in [Else,Elseif]:
+                i = l_token.pop()
+                text[i] = ( d_level_var[lvl],text[i][1])
+
+		assert (type(text[i][1]) == If)
+	
+		l_token.append(i)
+		d_level_var[lvl] = e[:]
+
+	else:
+		d_level_var[lvl] += e[:]
+		text[i] = ([],line)
+
+    assert(lvl==0)
+ 
 def move_variables(parsed_text):
     #(List[ Tuple[List[Entity], Tuple[int,List[Line]] ]]
     '''Move variables into the top of the declaraiton'''
@@ -409,6 +458,10 @@ def move_variables(parsed_text):
 
         result.reverse()
 
+        #print '@@@@@@@@@@@@@'
+        #for i in text:
+        #        print i
+
         # 2nd pass
         text = result
         result = []
@@ -450,7 +503,14 @@ def move_variables(parsed_text):
 
     main_result = []
     for filename, text in parsed_text:
+        #for i in text:
+        #        print i
         main_result.append((filename, func(filename, text)))
+
+        #print '==========='
+        #for i in main_result[-1][1]:
+        #        print i
+
     return main_result
 
 
@@ -502,12 +562,29 @@ def build_needs(parsed_text, subroutines, stuple, variables):
     # ~#~#~#~#~#
 
     for v in variables:
-        var = variables[v]
-        for x in var.needs:
-            variables[x].needed_by.append(var.name)
+        variables[v].needed_by = []
+    for v in variables:
+        main = variables[v].same_as
+        if main != v:
+            variables[v].needed_by = variables[main].needed_by
 
-    for var in variables.values():
-        var.needed_by = uniquify(var.needed_by)
+    for v in variables:
+        var = variables[v]
+        if var.is_main:
+            for x in var.needs:
+                variables[x].needed_by.append(var.same_as)
+
+    for v in variables:
+        var = variables[v]
+	var.needed_by = uniquify(var.needed_by)
+
+#    for v in variables:
+#        var = variables[v]
+#        for x in var.needs:
+#            variables[x].needed_by.append(var.name)
+#
+#    for var in variables.values():
+#        var.needed_by = uniquify(var.needed_by)
 
 ######################################################################
 from command_line import command_line

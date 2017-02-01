@@ -43,7 +43,6 @@ def create(modules,variables):
   for v,var in variables.iteritems():
 
     if var.fmodule not in main_modules_name:
-      #if var.is_self_touched:
       out += var.toucher
       if var.dim:
         finalize += "  if (allocated(%s)) then\n"%v

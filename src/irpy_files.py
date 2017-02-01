@@ -115,7 +115,7 @@ class Irpy_comm_world(object):
             ent = Ent_part()
             l_ent += [ent] + [Ent_part(name) for name in ent.others_entity_name]
 
-# O(2) but who care
+        # O(2) but who care
         l_duplicate = [x for x in l_ent if l_ent.count(x) > 1]
         if l_duplicate:
             from util import logger
@@ -124,18 +124,15 @@ class Irpy_comm_world(object):
             import sys
             sys.exit(1)
 
-# Python 2.6 Don't allow list comprehesion
+        # Python 2.6 Don't allow list comprehesion
         d_ent = dict()
         for e in l_ent:
             d_ent[e.name] = e
 
-#
-# Second pass
-#
-# Modify parameter of variables
-
-# Touch Softouch	
-
+        #
+        # Second pass
+        # Modify parameter of variables
+        # Touch Softouch	
         def find_variable(line):
             from util import logger
             import sys
@@ -238,7 +235,7 @@ class Irpy_comm_world(object):
         d_routine = self.d_routine
 
         import parsed_text
-        vtuple = [(v, s.regexp) for v, s in d_entity.iteritems()]
+        vtuple = [(v,s.same_as, s.regexp) for v, s in d_entity.iteritems()]
 
         def worker_parsed(filename_text):
             filename, text = filename_text
@@ -253,8 +250,7 @@ class Irpy_comm_world(object):
             for _, text in ptext:
                 parsed_text.move_to_top_list(text, l)
 
-    #Touch routine
-
+        #Touch routine
         parsed_text.build_sub_needs(parsed_text_0, d_routine)
         moved_to_top_l(parsed_text_0)
 
