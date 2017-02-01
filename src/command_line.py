@@ -24,11 +24,6 @@
 #   31062 Toulouse Cedex 4      
 #   scemama@irsamc.ups-tlse.fr
 
-try:
-  import irpy
-except:
-  import lib_irpy as irpy
-
 
 import getopt, sys
 from version import version
@@ -57,7 +52,6 @@ options['t'] = [ 'touch'        , 'Display which entities are touched when touch
 options['v'] = [ 'version'      , 'Prints version of irpf90', 0 ]
 options['w'] = [ 'warnings'     , 'Activate Warnings', 0 ]
 options['z'] = [ 'openmp'       , 'Activate for OpenMP code', 0 ]
-options['G'] = [ 'graph'        , 'Print the dependecy-graph of the entities (dots format)', 0 ]
 
 class CommandLine(object):
 
@@ -67,16 +61,17 @@ class CommandLine(object):
     self.argv = list(sys.argv)
     self.executable_name = self.argv[0]
 
-  @irpy.lazy_property
   def defined(self):
-    return [ a for o,a in self.opts if o in [ "-D", '--'+options['D'][0] ] ]  
+    if '_defined' not in self.__dict__:
+      self._defined = []
+      for o,a in self.opts:
+        if o in [ "-D", '--'+options['D'][0] ]:
+          self._defined.append(a)
+    return self._defined
+  defined = property(fget=defined)
 
-  @irpy.lazy_property
-  def graph(self):
-     return next((a.split() for o,a in self.opts if o in ["-G", '--'+options['G'][0] ]),[])
-  
-  @irpy.lazy_property
   def include_dir(self):
+    if '_include_dir' not in self.__dict__:
       self._include_dir = []
       for o,a in self.opts:
         if o in [ "-I", '--'+options['I'][0] ]:
@@ -85,32 +80,41 @@ class CommandLine(object):
           if a[-1] != '/':
             a = a+'/'
           self._include_dir.append(a)
-      return self._include_dir
-  
-  @irpy.lazy_property
-  def inline(self):
-      return next( (a for o,a in self.opts if o in [ "-n", '--'+options['n'][0] ]),'')
+    return self._include_dir
+  include_dir = property(fget=include_dir)
 
-  @irpy.lazy_property
+  def inline(self):
+    if '_inline' not in self.__dict__:
+      self._inline = ""
+      for o,a in self.opts:
+        if o in [ "-n", '--'+options['n'][0] ]:
+          self._inline = a
+          break
+    return self._inline
+  inline = property(fget=inline)
+
   def substituted(self):
+    if '_substituted' not in self.__dict__:
       self._substituted = {}
       for o,a in self.opts:
         if o in [ "-s", '--'+options['s'][0] ]:
           k, v = a.split(':')
           v_re = re.compile(r"(\W)(%s)(\W.*$|$)"%k.strip())
           self._substituted[k] = [v, v_re]
-      return self._substituted
+    return self._substituted
+  substituted = property(fget=substituted)
 
-  @irpy.lazy_property
   def codelet(self):
+    if '_codelet' not in self.__dict__:
+      self._codelet = []
       for o,a in self.opts:
         if o in [ "-c", '--'+options['c'][0] ]:
           buffer = a.split(':')
           filename = 'codelet_'+buffer[0]+'.irp.f'
           if len(buffer) == 2:
-            return  [buffer[0], int(buffer[1]), None, filename]
+            self._codelet = [buffer[0], int(buffer[1]), None, filename]
           elif len(buffer) == 3:
-            return [buffer[0], int(buffer[2]), buffer[1], filename]
+            self._codelet = [buffer[0], int(buffer[2]), buffer[1], filename]
           else:
             print """
 Error in codelet definition. Use:
@@ -119,38 +123,80 @@ or
 --codelet=provider:precondition:NMAX
 """
             sys.exit(1)
+    return self._codelet
+  codelet = property(fget=codelet)
 
-  @irpy.lazy_property
-  def preprocessed(self): 
-      return [a for o,a in self.ops if o in [ "-p", '--'+options['p'][0] ] ]
+  def preprocessed(self):
+    if '_preprocessed' not in self.__dict__:
+      self._preprocessed = []
+      for o,a in self.opts:
+        if o in [ "-p", '--'+options['p'][0] ]:
+          self._preprocessed.append(a)
+    return self._preprocessed
+  preprocessed = property(fget=preprocessed)
 
-  @irpy.lazy_property
   def touched(self):
-       return [a for o,a in self.ops if o in [ "-t", '--'+options['t'][0] ] ]
+    if '_touched' not in self.__dict__:
+      self._touched = []
+      for o,a in self.opts:
+        if o in [ "-t", '--'+options['t'][0] ]:
+          self._touched.append(a.lower())
+    return self._touched
+  touched = property(fget=touched)
 
-  @irpy.lazy_property
   def align(self):
-    return next( (a for o,a in self.opts if o in [ "-l", '--'+options['l'][0] ]),'1')
+    if '_align' not in self.__dict__:
+      self._align = '1'
+      for o,a in self.opts:
+        if o in [ "-l", '--'+options['l'][0] ]:
+          self._align = a
+    return self._align
+  align = property(fget=align)
 
-  @irpy.lazy_property
   def coarray(self):
-    return any(o for o,a in self.opts if o in [ "-C", '--'+options['C'][0] ])
+    if '_coarray' not in self.__dict__:
+      self._coarray = False
+      for o,a in self.opts:
+        if o in [ "-C", '--'+options['C'][0] ]:
+          self._coarray = True
+    return self._coarray
+  coarray = property(fget=coarray)
 
-  @irpy.lazy_property
   def warnings(self):
-    return any(o for o,a in self.opts if o in [ "-W", '--'+options['W'][0] ]) 
+    if '_warnings' not in self.__dict__:
+      self._warnings= False
+      for o,a in self.opts:
+        if o in [ "-w", '--'+options['w'][0] ]:
+          self._warnings= True
+    return self._warnings
+  do_warnings = property(fget=warnings)
 
-  @irpy.lazy_property
   def openmp(self):
-    return any(o for o,a in self.opts if o in [ "-z", '--'+options['z'][0] ])
+    if '_openmp' not in self.__dict__:
+      self._openmp = False
+      for o,a in self.opts:
+        if o in [ "-z", '--'+options['z'][0] ]:
+          self._openmp = True
+    return self._openmp
+  do_openmp = property(fget=openmp)
 
-  @irpy.lazy_property
   def ninja(self):
-    return any(o for o,a in self.opts if o in [ "-j", '--'+options['j'][0] ])  
+    if '_ninja' not in self.__dict__:
+      self._ninja = False
+      for o,a in self.opts:
+        if o in [ "-j", '--'+options['j'][0] ]:
+          self._ninja = True
+    return self._ninja
+  do_ninja = property(fget=ninja)
 
-  @irpy.lazy_property
   def directives(self):
-    return not(any(o for o,a in self.opts if o in [ "-r", '--'+options['r'][0] ])) 
+    if '_directives' not in self.__dict__:
+      self._directives = True
+      for o,a in self.opts:
+        if o in [ "-r", '--'+options['r'][0] ]:
+          self._directives = False
+    return self._directives
+  directives = property(fget=directives)
 
   def usage(self):
     t = """
@@ -205,10 +251,17 @@ do_$LONG = property(fget=do_$LONG)
   for short in options:
     long = options[short][0]
     exec t.replace("$LONG",long).replace("$SHORT",short) #in locals()
- 
-  @irpy.lazy_property 
+
   def do_run(self):
-   return not(any( (self.do_version, self.do_help, self.do_preprocess, self.do_touch, self.do_init)))
+   if '_do_run' not in self.__dict__:
+     self._do_run = not ( \
+       self.do_version or \
+       self.do_help    or \
+       self.do_preprocess or \
+       self.do_touch or \
+       self.do_init )
+   return self._do_run
+  do_run = property(fget=do_run)
 
 
 command_line = CommandLine()

@@ -30,39 +30,39 @@ from util import *
 from variables import variables
 from modules import modules
 
-FILENAME=irpdir+'irp_touches.irp.F90'
+CHECKPOINT_UNIT_NUMBER=63
+
+FILENAME=irpdir+'irp_checkpoint.irp.F90'
 
 def create():
-  out = []
+  out_write      = [ "subroutine irp_checkpoint_write" ] 
   l = variables.keys()
   l.sort
   main_modules = filter(lambda x: modules[x].is_main, modules)
-  finalize = "subroutine irp_finalize_%s\n"%(irp_id)
   for m in filter(lambda x: not modules[x].is_main, modules):
-    finalize += " use %s\n"%(modules[m].name)
+    out_write   += [ "  use %s"%(modules[m].name) ]
+  out_write     += [ "  implicit none" ]
+  out_write     += [ "  integer, parameter :: iunit = %d"%(CHECKPOINT_UNIT_NUMBER) ]
+  out_write     += [ "  open(unit=%d,file='irp_checkpoint.dat',status='UNKNOWN',action='WRITE')"%(CHECKPOINT_UNIT_NUMBER) ]
   for v in l:
     var = variables[v]
-    var_in_main = False
-    for m in main_modules:
-      if var.fmodule == modules[m].name:
-        var_in_main = True
-        break
-    if not var_in_main:
-      if var.is_touched:
-        out += var.toucher
-      if var.dim != []:
-        finalize += "  if (allocated(%s)) then\n"%v
-        finalize += "    %s_is_built = .False.\n"%var.same_as
-        finalize += "    deallocate(%s)\n"%v
-        finalize += "  endif\n"
-  finalize += "end\n"
+    if var.is_main:
+      out_write     += [ "  if (%s_is_built) then"%(v) ]
+      for w in [v]+var.others:
+        d = variables[w].dim
+        if d == []:
+          out_write += [ "    write(iunit,*) '%s', 0"%(w) ]
+        else:
+          out_write += [ "    write(iunit, *) '%s', %d"%(w, len(d)),  
+                        "    write(iunit, *) %s"%(",".join(
+                        [ "size(%s,%d)"%(w,i+1) for i in range(len(d)) ] ))
+                       ]
+        out_write   += [ "    write(iunit,*) %s"%(w) ]
+      out_write     += [ "  endif" ]
+  out_write         += [ "  close(%d)"%(CHECKPOINT_UNIT_NUMBER) ]
+  out_write         += [ "end" ]
 
-
-  if out != []:
-    out = map(lambda x: "%s\n"%(x),out)
-
-  out += finalize
-  
+  out = '\n'.join(out_write)
   if not same_file(FILENAME,out):
     file = open(FILENAME,'w')
     file.writelines(out)

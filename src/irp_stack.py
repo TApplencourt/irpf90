@@ -85,9 +85,9 @@ subroutine irp_enter(irp_where)
  nthread = 1
  """
      txt += """
-   print *, 'Allocating irp_stack(',STACKMAX,',',0:nthread,')'
-   print *, 'Allocating irp_cpu(',STACKMAX,',',0:nthread,')'
-   print *, 'Allocating stack_index(',0:nthread,')'
+   print *, 'Allocating irp_stack(',STACKMAX,',',nthread,')'
+   print *, 'Allocating irp_cpu(',STACKMAX,',',nthread,')'
+   print *, 'Allocating stack_index(',nthread,')'
  endif"""
   txt +="""
 $2
@@ -128,9 +128,9 @@ $1
   nthread = 1
 """
     txt +="""
-  print *, 'Allocating irp_stack(',STACKMAX,',',0:nthread,')'
-  print *, 'Allocating irp_cpu(',STACKMAX,',',0:nthread,')'
-  print *, 'Allocating stack_index(',0:nthread,')'
+  print *, 'Allocating irp_stack(',STACKMAX,',',nthread,')'
+  print *, 'Allocating irp_cpu(',STACKMAX,',',nthread,')'
+  print *, 'Allocating stack_index(',nthread,')'
  endif
 """
   txt += """
@@ -172,16 +172,16 @@ end subroutine
  !$OMP END PARALLEL
  !$OMP CRITICAL
  if (.not.alloc) then
-   allocate(irp_stack(0:STACKMAX,0:nthread))
-   allocate(irp_cpu(0:STACKMAX,0:nthread))
-   allocate(stack_index(0:nthread))
+   allocate(irp_stack(0:STACKMAX,nthread))
+   allocate(irp_cpu(0:STACKMAX,nthread))
+   allocate(stack_index(nthread))
    stack_index = 0
    alloc = .True.
  endif
  !$OMP END CRITICAL
  endif
- stack_index(ithread) = min(stack_index(ithread)+1,STACKMAX)
- irp_stack(stack_index(ithread),ithread) = irp_where"""
+ stack_index(ithread+1) = mod(stack_index(ithread+1)+1,STACKMAX)
+ irp_stack(stack_index(ithread+1),ithread+1) = irp_where"""
     else:
       s += """
  nthread = 1
@@ -193,13 +193,13 @@ end subroutine
    alloc = .True.
  endif
  endif
- stack_index(1) = min(stack_index(1)+1,STACKMAX)
+ stack_index(1) = mod(stack_index(1)+1,STACKMAX)
  irp_stack(stack_index(1),1) = irp_where"""
     if do_memory:
       txt+="""
-  print *, 'Allocating irp_stack(',STACKMAX,','0:nthread,')'
-  print *, 'Allocating irp_cpu(',STACKMAX,','0:nthread,')'
-  print *, 'Allocating stack_index(',0:nthread,')'"""
+  print *, 'Allocating irp_stack(',STACKMAX,','nthread,')'
+  print *, 'Allocating irp_cpu(',STACKMAX,','nthread,')'
+  print *, 'Allocating stack_index(',nthread,')'"""
   else:
     s = ""
   txt = txt.replace("$1",s)
@@ -207,8 +207,8 @@ end subroutine
   # $2
   if do_debug:
     txt = txt.replace("$2","""
-  print *, ithread, ':', white(1:stack_index(ithread))//'-> ', trim(irp_where)
-  call cpu_time(irp_cpu(stack_index(ithread),ithread))""")
+  print *, ithread, ':', white(1:stack_index(ithread+1))//'-> ', trim(irp_where)
+  call cpu_time(irp_cpu(stack_index(ithread+1),ithread+1))""")
   else:
     txt = txt.replace("$2","")
 
@@ -216,16 +216,16 @@ end subroutine
   if do_debug:
     txt = txt.replace("$3","""
   call cpu_time(cpu)
-  print *, ithread, ':', white(1:stack_index(ithread))//'<- ', &
-    trim(irp_stack(stack_index(ithread),ithread)), &
-    cpu-irp_cpu(stack_index(ithread),ithread)""")
+  print *, ithread, ':', white(1:stack_index(ithread+1))//'<- ', &
+    trim(irp_stack(stack_index(ithread+1),ithread+1)), &
+    cpu-irp_cpu(stack_index(ithread+1),ithread+1)""")
   else:
     txt = txt.replace("$3","")
 
   # $4
   if do_debug or do_assert:
     txt = txt.replace("$4","""
-  stack_index(ithread) = max(0,stack_index(ithread)-1)""")
+  stack_index(ithread+1) = stack_index(ithread+1)-1""")
   else:
     txt = txt.replace("$4","")
 
@@ -248,13 +248,18 @@ subroutine irp_trace
  if (.not.alloc) return
  print *, 'Stack trace: ', ithread
  print *, '-------------------------'
- do i=1,stack_index(ithread)
-  print *, trim(irp_stack(i,ithread))
+ do i=1,stack_index(ithread+1)
+  print *, trim(irp_stack(i,ithread+1))
  enddo
  print *, '-------------------------'
 end subroutine
-
 """
 
-  util.lazy_write_file(FILENAME,txt)
+  txt = txt.split('\n')
+  txt = map(lambda x: x+"\n",txt)
+  if not util.same_file(FILENAME, txt):
+    file = open(FILENAME,'w')
+    file.writelines(txt)
+    file.close()
+
 

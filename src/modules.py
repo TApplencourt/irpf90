@@ -26,48 +26,43 @@
 
 
 from irpf90_t import *
+from parsed_text import parsed_text
+from module import Fmodule
 from util import *
-from variables import variables
-from modules import modules
 
-FILENAME=irpdir+'irp_touches.irp.F90'
+######################################################################
+def create_modules():
+  result = {}
+  for filename,text in parsed_text:
+    result[filename] = Fmodule(text,filename)  
+  return result
 
-def create():
-  out = []
-  l = variables.keys()
-  l.sort
-  main_modules = filter(lambda x: modules[x].is_main, modules)
-  finalize = "subroutine irp_finalize_%s\n"%(irp_id)
-  for m in filter(lambda x: not modules[x].is_main, modules):
-    finalize += " use %s\n"%(modules[m].name)
-  for v in l:
-    var = variables[v]
-    var_in_main = False
-    for m in main_modules:
-      if var.fmodule == modules[m].name:
-        var_in_main = True
-        break
-    if not var_in_main:
-      if var.is_touched:
-        out += var.toucher
-      if var.dim != []:
-        finalize += "  if (allocated(%s)) then\n"%v
-        finalize += "    %s_is_built = .False.\n"%var.same_as
-        finalize += "    deallocate(%s)\n"%v
-        finalize += "  endif\n"
-  finalize += "end\n"
+modules = create_modules()
 
-
-  if out != []:
-    out = map(lambda x: "%s\n"%(x),out)
-
-  out += finalize
-  
-  if not same_file(FILENAME,out):
-    file = open(FILENAME,'w')
-    file.writelines(out)
+######################################################################
+def write_module(m):
+  # Module data
+  filename = irpdir+m.filename+".irp.module.F90"
+  text = m.header + m.head 
+  text = map(lambda x: "%s\n"%(x),text)
+  if not same_file(filename,text):
+#    print filename
+    file = open(filename,"w")
+    file.writelines(text)
     file.close()
 
+  # Subroutines
+  filename = irpdir+m.filename+".irp.F90"
+  text = m.header + m.generated_text + m.residual_text
+  text = map(lambda x: "%s\n"%(x),text)
+  if not same_file(filename,text):
+#    print filename
+    file = open(filename,"w")
+    file.writelines(text)
+    file.close()
+
+######################################################################
 if __name__ == '__main__':
-  create()
+  write_module(modules['psi.irp.f'])
+  
 
