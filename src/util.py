@@ -243,8 +243,16 @@ def check_output(*popenargs, **kwargs):
 
 def uniquify(l,sort=False):
     # (Iter, bool) -> List[Any]
-    '''Uniquify a immutable iterable. Don't preserve the order'''
-    r = list(set(l))
+    '''Uniquify a immutable iterable. Don't preserve the order. Or maybe.'''
+
+
+    #Be carefull that element in Iter can be unshable.
+    try:
+       r = list(set(l))
+    except TypeError:
+	used = list()
+	r = [x for x in l if x not in used and (used.append(x) or True)]
+ 
     if not sort:
 	return r
     else:
@@ -329,8 +337,6 @@ def l_dummy_entity(d_entity):
 	l_dummy = [set([i,j]) for i,j in l_candidate_botom if d_entity[i].needed_by == d_entity[j].needed_by]
 
 	return che_merge(l_dummy)
-	l_merge = che_merge(l_dummy)
-	return  [l_set for l_set in l_merge if all(d_entity[e].is_main for e in l_set)] 
 
 def split_l_set(l_set_org):
 	#(List[set] -> (List, Set)

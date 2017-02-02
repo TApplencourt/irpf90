@@ -54,92 +54,96 @@ def main():
 
     comm_world = Irpy_comm_world()
 
+     
     if command_line.do_graph:
 	# Create a dot reprenstion of the dependency graph.
 	# Merge inside a subgraph the Entity provided together
 
+	def print_full_diagram(l_entity):
+
+	   l_entity_not_leaf= [e for e in l_entity if e.needs]
+           print 'digraph Full { '
+           for e in l_entity_not_leaf:
+                 print '   %s -> { %s } ' % (e.name, ' '.join(e.needs))
+           print '}'
+
+
+
+	def print_subgraph(l_tuple,name,color):
+	    for i,s in enumerate(l_tuple):
+                print '   subgraph cluster_%s_%s {' % (name,i)
+                print '       %s ' % ' '.join(s)
+                print '       color = %s ' % color
+                print '   }'
+
 	comm_world.t_filename_parsed_text # Initialize entity need. Dirty I know.
 
-	from util import l_dummy_entity, split_l_set
-	#print len(comm_world.d_entity)
-	#print sum(len(i.needs) for i in comm_world.d_entity.values())
-	#print l_dummy_entity(comm_world.d_entity)
-	#print len(l_dummy_entity(comm_world.d_entity))
-	#print sum(len(i) for i in l_dummy_entity(comm_world.d_entity))
 
+        print 'digraph Compact { '
+        print '   graph [ordering="out" splines=true overlap=false];'
 
 	l_main_usr =  set([entity for entity in comm_world.d_entity.values() if entity.is_main])
         l_main_head_usr = set([entity for entity in l_main_usr if  entity.others_entity_name])
-	l_main_atomic_usr = l_main_usr - l_main_head_usr
+	l_set_main_head_name = [ set([e.name]+e.others_entity_name) for e in l_main_head_usr]
 
-	print 'digraph Full { '
-	for e in comm_world.d_entity.values():
-		if e.needs: 
-			print '   %s -> { %s } ' % (e.name, ' '.join(e.needs))
-	
-	print '}'
-	print ''
+	print_subgraph(l_set_main_head_name,'usr',color='blue')
 
-	print 'digraph Small { '
-	print '   graph [ordering="out"];'
-        for e in l_main_head_usr:
-                print '   subgraph cluster%s {' % e.name
-                print '       %s ' % ' '.join([e.name] + e.others_entity_name)
-                print '   }'
+	from util import l_dummy_entity
 
+	l_set_dummy_name= l_dummy_entity(comm_world.d_entity)
+	print_subgraph(l_set_dummy_name,'dummy',color='red')
 
-	
-        l_set_dummy_name= l_dummy_entity(comm_world.d_entity)
-        for i,s in enumerate(l_set_dummy_name):
-                print '   subgraph cluster%s {' % i
-                print '       %s ' % ' '.join(s)
-                print '      color = blue'
-                print '   }'
+        #~=~=~=~=
+        # Create List Node Uniq
+	#~=~=~=~=
 
-
-	# We do exactly like the multi-provider.
+	from util import split_l_set, flatten
 	l_main_dummy_name, s_exculde_dummy_name = split_l_set(l_set_dummy_name)
-	from util import flatten
-	l_dummy_name = flatten(l_set_dummy_name)
-	l_main_head_dummy = [comm_world.d_entity[name] for name in l_main_dummy_name]
+	l_name_dummy_name_flatten = flatten(l_set_dummy_name)
+
+        l_main_head_dummy = set([comm_world.d_entity[name] for name in l_name_dummy_name_flatten])
+	s_exculde_dummy = set([comm_world.d_entity[name] for name in s_exculde_dummy_name])
+
+	l_node_uniq = (l_main_usr | l_main_head_dummy) - s_exculde_dummy
+
+ 
+        #~=~=~=~=
+        # Create All edge
+        #~=~=~=~=
+	# We need to remove the spurious edge caused by the the dummy multiples providers 
+	d_need = dict()
+	for e in l_node_uniq:
+		d_need[e.name] = set(e.needs)
 
 
-        # Optimisation
-	# 1) We merge the depency of multiple-provider. All entity into a multiple provider are the same.
-        # 2) For the automatic one, we draw only the arrow for one parent.
+        #~=~=~=~=
+        # Create All edge
+        #~=~=~=~=
+	# Draw the eddge
+        # If a arrow if arriving into Multipliple provider and if it is bold this mean it use all the entity inside it.
 
-	for e in (e for e in l_main_atomic_usr if e.needs and e.name not in l_dummy_name):
-                needs_filter = set(e.needs) - s_exculde_dummy_name
-                if set(e.needs) != needs_filter:
-                        needs_filter = set(e.needs) - s_exculde_dummy_name
-                        for s in needs_filter:
-                                if s in l_dummy_name:
-                                        print '   %s -> { %s } [color=blue, penwidth=2]' % (e.name, s)
+        from util import uniquify
+        l_set_multiple = uniquify(l_set_dummy_name + l_set_main_head_name)
 
-                                else:
-                                        print '   %s -> { %s }' % (e.name, s)
-                else:
-                        print '   %s -> { %s }' % (e.name, ' ; '.join(e.needs))
+	l_name_usr =  [e.name for e in l_main_head_usr]
+	for source,l_target in d_need.items():
 
-	for e in (e for e in l_main_head_usr if e.needs and e.name not in l_dummy_name):
-		needs_filter = set(e.needs) - s_exculde_dummy_name
-                if set(e.needs) != needs_filter:
-                        needs_filter = set(e.needs) - s_exculde_dummy_name
-			for s in needs_filter:
-				if s in l_dummy_name:				
-                      			print '   %s -> { %s } [color=blue, penwidth=2]' % (e.name, s)
+                if source in l_name_usr:
+                            color = 'blue'
+                elif source in l_name_dummy_name_flatten:
+                            color = 'red'
+		else:
+			    color = 'black'
 
-				else:
-					print '   %s -> { %s } [penwidth=2]' % (e.name, s)
-                else:
-                        print '   %s -> { %s } [penwidth=2]' % (e.name, ' ; '.join(e.needs))
+		for s in l_set_multiple:
+			if s.issubset(l_target):
+				print ' %s -> %s [color="%s", penwidth=2]' %(source,sorted(s).pop(), color)
+				l_target = l_target -  s		
 
-        for e in (e for e in l_main_head_dummy if e.needs):
-                print '   %s -> { %s } [color=blue, penwidth=2]' % (e.name, ' ; '.join(e.needs))
+		if l_target:
+			print ' %s -> { %s } [color="%s"]'% (source,'  '.join(l_target), color)
 
-    	print '}'
-
-	
+	print '   }'
 	return
 
 

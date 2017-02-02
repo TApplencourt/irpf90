@@ -566,35 +566,14 @@ def build_needs(parsed_text, subroutines, stuple, variables):
     # Needs_by
     # ~#~#~#~#~#
     from collections import defaultdict
+
     d_needed_by = defaultdict(list)
-
-    d_needed_by2 = defaultdict(list)
-
-    for v in variables:
-        var = variables[v]
+    for var in variables.values():
         for x in var.needs:
-            d_needed_by2[x].append(var.name)
+            d_needed_by[x].append(var.name)
 
-
-    for v in variables:
-        main = variables[v].same_as
-        if main != v:
-            d_needed_by[v] = d_needed_by[main]
-
-    for v in variables:
-        var = variables[v]
-        if var.is_main:
-            for x in var.needs:
-                d_needed_by[x].append(var.same_as)
-
-    from util import mangled
     for v in d_needed_by:
-        d_needed_by[v] = uniquify(d_needed_by[v])
-	d_needed_by2[v] = uniquify(d_needed_by2[v])
-	
-    for v in d_needed_by:
-    	variables[v].needed_by = d_needed_by2[v]
-	variables[v].needed_by2 = d_needed_by2[v]
+    	variables[v].needed_by = uniquify(d_needed_by[v])
 
 ######################################################################
 from command_line import command_line
