@@ -130,13 +130,17 @@ class Entity(object):
 	d = self.d_type_lines
 	return next(line for _,line in d[Begin_provider]+d[Cont_provider] if line.filename[1] == self.name)
 
+    @irpy.lazy_property
+    def l_name(self):
+	# () -> List[str]
+	d = self.d_type_lines
+	return [line.filename[1] for _,line in d[Begin_provider]+d[Cont_provider] ]
 
     @irpy.lazy_property
-    def others_entity_name(self):
+    def l_others_name(self):
 	# () -> List[str]
 	'''Extract the other entity-name defined'''
-	d = self.d_type_lines
-	return [line.filename[1] for _,line in d[Begin_provider]+d[Cont_provider] if not line.filename[1] == self.name]
+	return [name for name in self.l_name if not name == self.name]
 
 
     @irpy.lazy_property
@@ -193,7 +197,7 @@ class Entity(object):
             "   irp_iunit = irp_iunit+1",
             "   inquire(unit=irp_iunit,opened=irp_is_open)",
             "  enddo" ]
-            for n in [name] + self.others_entity_name:
+            for n in self.l_name:
                 result += [\
                 "  open(unit=irp_iunit,file='irpf90_%s_'//trim(irp_num),form='FORMATTED',status='UNKNOWN',action='WRITE')"%(n),
                 "  write(irp_iunit,*) %s%s"%(n,build_dim(self.d_entity[n].dim,colons=True)),
@@ -224,7 +228,7 @@ class Entity(object):
             "  logical                   :: irp_is_open",
             "  integer                   :: irp_iunit" ]
             if command_line.do_debug:
-                length = len("reader_%s" % (self.name))
+                length = len("reader_%s" % (name))
                 result += [\
                 "  character*(%d) :: irp_here = 'reader_%s'"%(length,name),
                 "  call irp_enter(irp_here)" ]
@@ -235,7 +239,7 @@ class Entity(object):
             "  do while (irp_is_open)",
             "   inquire(unit=irp_iunit,opened=irp_is_open)",
             "  enddo"]
-            for n in [name] + self.others:
+            for n in self.l_name:
                 result += [\
                 "  open(unit=irp_iunit,file='irpf90_%s_'//trim(irp_num),form='FORMATTED',status='OLD',action='READ')"%(n),
                 "  read(irp_iunit,*) %s%s"%(n,build_dim(self.cm_d_variable[n].dim,colons=True)),
@@ -325,7 +329,7 @@ class Entity(object):
             return []
         else:
             # We never go here
-            return [var for var in self.others_entity_name + [self.name] if self.d_entity[var].dim]
+            return [var for var in l_name if self.d_entity[var].dim]
 
     # ~ # ~ # ~
     # D e c l a r a t i o n
@@ -606,7 +610,7 @@ class Entity(object):
         if command_line.do_assert or command_line.do_debug:
             result.append("  call irp_enter(irp_here)")
         result += build_call_provide(self.to_provide, self.d_entity)
-        result += flatten(map(build_alloc, [self.same_as] + self.others_entity_name))
+        result += flatten(map(build_alloc, self.l_name))
         result += [
             " if (.not.%s_is_built) then" % (same_as), "  call bld_%s" % (same_as),
             "  %s_is_built = .True." % (same_as), ""

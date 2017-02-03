@@ -113,7 +113,7 @@ class Irpy_comm_world(object):
             Ent_part = partial(Entity, buf, icount, comm_world=self)
 
             ent = Ent_part()
-            l_ent += [ent] + [Ent_part(name) for name in ent.others_entity_name]
+            l_ent += [ent] + [Ent_part(name) for name in ent.l_others_name]
 
         # O(2) but who care
         l_duplicate = [x for x in l_ent if l_ent.count(x) > 1]

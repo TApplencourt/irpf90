@@ -57,7 +57,7 @@ def check_touch(variables, line, vars, main_vars):
         if main_var not in variables:
             error.fail(line, "Variable %s unknown" % (main_var, ))
         x = variables[main_var]
-        return [main_var] + x.others_entity_name
+        return [main_var] + x.l_others_name
 
     all_others = uniquify(flatten(map(fun, main_vars)))
     all_others.sort()

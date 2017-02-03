@@ -56,7 +56,7 @@ def process_deps(l):
 def process_types(entity_input, d_entity):
     assert type(entity_input) == Entity
 
-    l_name = [entity_input.name] + entity_input.others_entity_name
+    l_name = entity_input.l_name
     l_entity = [d_entity[name] for name in l_name]
 
     l = [ "{0}\t:: {1}\t{2}".format(entity.type, name, build_dim(entity.dim) )

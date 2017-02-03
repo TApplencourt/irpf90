@@ -83,8 +83,8 @@ def main():
         print '   graph [ordering="out" splines=true overlap=false];'
 
 	l_main_usr =  set([entity for entity in comm_world.d_entity.values() if entity.is_main])
-        l_main_head_usr = set([entity for entity in l_main_usr if  entity.others_entity_name])
-	l_set_main_head_name = [ set([e.name]+e.others_entity_name) for e in l_main_head_usr]
+        l_main_head_usr = set([entity for entity in l_main_usr if entity.l_others_name])
+	l_set_main_head_name = [ set(e.l_name) for e in l_main_head_usr]
 
 	print_subgraph(l_set_main_head_name,'usr',color='blue')
 
