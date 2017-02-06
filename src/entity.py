@@ -501,20 +501,157 @@ class Entity(object):
         if not self.is_main:
             return []
 
+        from ashes import AshesEnv
+        template = '''
+{#l_allocate}
+{subroutine|s}
+{/l_allocate}
+
+{?inline}
+!DEC$ ATTRIBUTES FORCEINLINE :: provide_{name}
+{/inline}
+subroutine provide_{name}
+
+ {?do_openmp}
+   use omp_lib
+ {/do_openmp}
+
+ {#l_module}
+   {name}
+ {/l_module}
+ 
+ implicit none
+ character*(8+{@size key=name/}),parameter :: irp_here = 'provide_{name}'
+
+ {?do_openmp}
+ call irp_lock_{name}(.True.)
+ {/do_openmp}
+ 
+ {?do_debug}
+ call irp_enter(irp_here)
+ {/do_debug}
+
+ {#l_children}
+ if (.NOT.{name}_is_built) then
+   call provide_{name}
+ endif
+ {/l_children}
+
+ {#do_task}
+ !$omp task default(shared) {depend}
+ {/do_task}
+
+ {#l_allocate}
+ call allocate_{name}
+ {/l_allocate}
+ call bld_{name}
+ 
+ {#do_task}
+ !$omp end task
+ {/do_task}
+  
+ {name}_is_built = .TRUE.
+
+ {?do_openmp}
+ call irp_lock_{name}(.False.)
+ {/do_openmp}
+
+ {?do_debug}
+ call irp_leave(irp_here)
+ {/do_debug}
+
+end subroutine provide_{name}
+'''
+	from util import mangled
+
         name = self.name
-        same_as = self.same_as
+	var = self.d_entity[name]
+	l_module = [ {'name':x} for x in build_use([self.name] + self.to_provide, self.d_entity)]
+	l_allocate = [ {'name':n, 'subroutine':self.build_alloc(n)}  for n in  self.l_name if self.d_entity[n].dim]
+	l_children = [ {'name':x} for x in mangled(self.to_provide, self.d_entity) ] 
+
+	in_ =  ['depend(in: %s)' % n for n in self.to_provide]
+	out_ = ['depend(out: %s)' % n for n in self.l_name]
+	do_task = [ {'depend':' '.join(in_ + out_) } ] if command_line.do_Task else []  
+
+        ashes_env = AshesEnv()
+        ashes_env.register_source('provide',template)
+
+        l = ashes_env.render('provide', {'name': name,
+                                         'l_module':l_module,
+					 'l_allocate':l_allocate,
+					 'l_children':l_children,
+					 'do_debug':command_line.do_debug,
+					 'do_openmp':command_line.do_openmp,
+					 'do_task':do_task})
+		
+	return l.split('\n')
+	
+    def build_alloc(self,name):
+        var = self.d_entity[name]
+        from ashes import AshesEnv
+        template = ("""
+
+subroutine allocate_{name}
+
+ {#l_module}
+   {name}
+ {/l_module}
+
+   character*(9+{@size key=name/}),parameter :: irp_here = 'allocate_{name}'
+   integer                  :: irp_err
+   
+   if ( allocated({name}) .AND.( &
+     {#l_dim}
+        ( SIZE({name},{rank}) /= {value} ) {@sep}.OR.{/sep} &
+      {/l_dim}
+      )) then
+
+      {?do_memory}
+         print *, irp_here//': Deallocated {name}'
+      {/do_memory}
+
+        deallocate( {name}, stat=irp_err )
+
+        if (irp_err /= 0) then
+          print *, irp_here//': Deallocation failed: {name}'
+          print *,' size: {dim}'
+        endif
+
+   endif
+
+   if ( .NOT. allocated({name}) ) then
+
+      {?do_memory}
+         print *, irp_here//': Allocate {name} ({dim})'
+      {/do_memory}
+
+     {^corray}
+        allocate({name} ({dim}),    stat=irp_err)	
+     {:else}
+        allocate({name} ({dim}[*]), stat=irp_err)
+     {/corray}
+        if (irp_err /= 0) then
+          print *, irp_here//': Allocation failed: {name}'
+          print *,' size: {dim}'
+        endif
+
+   endif
+
+end subroutine
+
+""")
 
         def dimsize(x):
-	    # (str) -> str
-	    '''Compute the number of element in the array'''
-	    try:
-	        b0, b1 = x.split(':')
-	    except ValueError:
-		return x
+            # (str) -> str
+            '''Compute the number of element in the array'''
+            try:
+                b0, b1 = x.split(':')
+            except ValueError:
+                return x
 
-	    b0_is_digit =  b0.replace('-', '').isdigit()
-	    b1_is_digit =  b1.replace('-', '').isdigit() 
-	   
+            b0_is_digit =  b0.replace('-', '').isdigit()
+            b1_is_digit =  b1.replace('-', '').isdigit()
 
             if b0_is_digit and b1_is_digit:
                 size = str(int(b1) - int(b0) + 1)
@@ -524,105 +661,20 @@ class Entity(object):
                     size = "(%d) - (%s)" % (int(b1) + 1, b0)
             else:
                     size = "(%s) - (%s) + 1" % (b1, b0)
-
             return size
 
-        def build_alloc(name):
+	l_dim = [{'name':name, 'rank':i+1, 'value':dimsize(k)}  for i, k in enumerate(var.dim)]
+	l_module = [ {'name':x} for x in build_use([var.name] + var.needs, self.d_entity) ]
 
-            var = self.d_entity[name]
-            if var.dim == []:
-                return []
-
-            from util import build_dim
-
-            def print_size():
-                return " " * 5 + "print *, ' size: {0}'".format(build_dim(var.dim))
-
-            def check_dimensions():
-                l = ["(%s>0)" % dimsize(x) for x in var.dim]
-                str_ = ".and.".join(l)
-                return "   if (%s) then" % (str_)
-
-            def dimensions_OK():
-                result = ["  irp_dimensions_OK = .True."]
-                for i, k in enumerate(var.dim):
-                    result.append("  irp_dimensions_OK = irp_dimensions_OK.AND.(SIZE(%s,%d)==(%s))"
-                                  % (name, i + 1, dimsize(k)))
-                return result
-
-            def do_allocate():
-                if command_line.coarray:
-                    result = "    allocate(%s(%s)[*],stat=irp_err)"
-                else:
-                    result = "    allocate(%s(%s),stat=irp_err)"
-                result = result % (name, ','.join(var.dim))
-                if command_line.do_memory:
-                    tmp = "\n   print *, %s, 'Allocating %s(%s)'"
-                    d = ','.join(self.dim)
-                    result += tmp % ('size(' + name + ')', name, d)
-                return result
-
-            result = [" if (allocated (%s) ) then" % (name)]
-            result += dimensions_OK()
-            result += [
-                "  if (.not.irp_dimensions_OK) then", "   deallocate(%s,stat=irp_err)" % (name),
-                "   if (irp_err /= 0) then", "     print *, irp_here//': Deallocation failed: %s'" %
-                (name), print_size(), "   endif"
-            ]
-
-            if command_line.do_memory:
-                result += ["   print *, 'Deallocating %s'" % (name)]
-            result.append(check_dimensions())
-            result.append(do_allocate())
-            result += [\
-              "    if (irp_err /= 0) then",
-              "     print *, irp_here//': Allocation failed: %s'"%(name),
-              print_size(),
-              "    endif",
-              "   endif",
-              "  endif",
-              " else" ]
-            result.append(check_dimensions())
-            result.append(do_allocate())
-            result += [
-                "    if (irp_err /= 0) then", "     print *, irp_here//': Allocation failed: %s'" %
-                (name), print_size(), "    endif", "   endif", " endif"
-            ]
-            return result
-
-        result = []
-        if command_line.directives and command_line.inline in ["all", "providers"]:
-            result += ["!DEC$ ATTRIBUTES FORCEINLINE :: provide_%s" % (name)]
-        result += ["subroutine provide_%s" % (name)]
-        result += build_use([same_as] + self.to_provide, self.d_entity)
-        if command_line.do_openmp:
-            result += [" use omp_lib"]
-        result.append("  implicit none")
-        length = len("provide_%s" % (name))
-        result += [
-            "  character*(%d) :: irp_here = 'provide_%s'" % (length, name),
-            "  integer                   :: irp_err ",
-            "  logical                   :: irp_dimensions_OK",
-            "!$ integer                  :: nthreads"
-        ]
-        if command_line.do_openmp:
-            result.append(" call irp_lock_%s(.True.)" % (same_as))
-        if command_line.do_assert or command_line.do_debug:
-            result.append("  call irp_enter(irp_here)")
-        result += build_call_provide(self.to_provide, self.d_entity)
-        result += flatten(map(build_alloc, self.l_name))
-        result += [
-            " if (.not.%s_is_built) then" % (same_as), "  call bld_%s" % (same_as),
-            "  %s_is_built = .True." % (same_as), ""
-        ]
-        result += [" endif"]
-        if command_line.do_assert or command_line.do_debug:
-            result.append("  call irp_leave(irp_here)")
-        if command_line.do_openmp:
-            result.append(" call irp_lock_%s(.False.)" % (same_as))
-        result.append("end subroutine provide_%s" % (name))
-        result.append("")
-        return result
+        ashes_env = AshesEnv()
+        ashes_env.register_source('hello',template)
+ 
+	return  ashes_env.render('hello', {'name': name,
+					 'dim':','.join(var.dim),
+				         'corray': command_line.coarray,
+				         'l_dim': l_dim,
+					 'l_module':l_module,
+					 'do_memory':command_line.do_memory})
 
     ##########################################################
     @irpy.lazy_property

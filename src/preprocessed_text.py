@@ -667,6 +667,11 @@ def irp_simple_statements(text):
         assert type(line) == Program
         program_name = line.lower.split()[1]
         temp = [Program(0, "program irp_program", program_name)]
+
+	if command_line.do_Task:
+		for i in ["  call  omp_set_nested(.TRUE.)", "!$omp parallel", "!$omp single"]:
+                	temp += [Simple_line(0, i, line.filename)]
+
         if command_line.do_profile:
             temp += [Simple_line(0, "call irp_init_timer()", line.filename)]
         if command_line.do_openmp:
@@ -676,10 +681,16 @@ def irp_simple_statements(text):
             temp += [Simple_line(0, "call irp_print_timer()", line.filename)]
 
         temp += [Simple_line(0, " call irp_finalize_%s()" % (irp_id), line.filename)]
+
+	if command_line.do_Task:
+		for i in ["!$omp taskwait","!$omp end single", "!$omp end parallel"]:
+			temp += [Simple_line(0, i, line.filename)] 	
+
         temp += [End(0, "end program", line.filename)]
 
         result = temp + process_subroutine(
             Subroutine(line.i, "subroutine %s" % (program_name, ), line.filename))
+
         return result
 
     d = {
