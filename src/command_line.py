@@ -54,11 +54,11 @@ options['p'] = [ 'preprocess'   , 'Prints a preprocessed file to standard output
 options['r'] = [ 'no_directives', 'Ignore all compiler directives !DEC$ and !DIR$', 0 ]
 options['s'] = [ 'substitute'   , 'Substitute values in do loops for generating specific optimized code.', 1 ]
 options['t'] = [ 'touch'        , 'Display which entities are touched when touching the variable given as an argument.', 1 ]
-options['T'] = [ 'Task'         , 'Auto-parallelism ', 0 ]
 options['v'] = [ 'version'      , 'Prints version of irpf90', 0 ]
 options['w'] = [ 'warnings'     , 'Activate Warnings', 0 ]
 options['z'] = [ 'openmp'       , 'Activate for OpenMP code', 0 ]
 options['G'] = [ 'graph'        , 'Print the dependecy-graph of the entities (dots format)', 0 ]
+options['T'] = [ 'Task'         , 'Auto-parallelism ', 1 ]
 
 class CommandLine(object):
 
@@ -78,15 +78,15 @@ class CommandLine(object):
   
   @irpy.lazy_property
   def include_dir(self):
-      self._include_dir = []
+      l = []
       for o,a in self.opts:
         if o in [ "-I", '--'+options['I'][0] ]:
           if len(a) < 1: 
             print "Error: -I option needs a directory"
           if a[-1] != '/':
             a = a+'/'
-          self._include_dir.append(a)
-      return self._include_dir
+          l.append(a)
+      return l
   
   @irpy.lazy_property
   def inline(self):
@@ -211,6 +211,9 @@ do_$LONG = property(fget=do_$LONG)
   def do_run(self):
    return not(any( (self.do_version, self.do_help, self.do_preprocess, self.do_touch, self.do_init)))
 
+  @irpy.lazy_property
+  def do_Task(self):
+    return True
 
 command_line = CommandLine()
 

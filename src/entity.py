@@ -401,35 +401,56 @@ class Entity(object):
 	# () -> List[str]
 	'''Fabric the f90 routine who handle the cache invalidation'''
 
+        # Only one by EntityColleciton
+        if not self.is_main:
+            return []
+
+        template = '''
+subroutine touch_{name}
+
+ {#l_module}
+   {name}
+ {/l_module}
+
+  implicit none
+  character*(6+{@size key=name/}),parameter :: irp_here = 'touch_{name}'
+
+ {?do_debug}
+   call irp_enter(irp_here)
+ {/do_debug}
+ 
+ {#l_ancestor}
+  {name}_is_built = .False.
+ {/l_ancestor}
+ 
+  {name}_is_built = .True. 
+
+ {?do_debug}
+   call irp_leave(irp_here)
+ {/do_debug}
+
+end subroutine touch_{name}
+'''
+
 	# Only one by EntityColleciton
         if not self.is_main:
             return []
 	
 	from util import mangled
-        parents = mangled(self.parents,self.d_entity)
+        l_parents = [{'name':n} for n in mangled(self.parents,self.d_entity)]
         name = self.name
+        l_module= [ {'name':n} for n in build_use(self.parents+[name],self.d_entity)]
 
-        result = ["subroutine touch_%s" % (name)]
+	from ashes import AshesEnv
+        ashes_env = AshesEnv()
+        ashes_env.register_source('touch',template)
 
-        result += build_use(parents+[name],self.d_entity)
-        result.append("  implicit none")
-
-        if command_line.do_debug:
-            length = str(len("touch_%s" % (name)))
-            result += ["  character*(%s) :: irp_here = 'touch_%s'" % (length, name)]
-            result += ["  call irp_enter(irp_here)"]
-
-        result += map(lambda x: "  %s_is_built = .False." % (x), parents)
-        result.append("  %s_is_built = .True." % (name))
-
-        if command_line.do_debug:
-            result.append("  call irp_leave(irp_here)")
-
-        result.append("end subroutine touch_%s" % (name))
-        result.append("")
-
-        return result
-
+        l = ashes_env.render('touch', {'name': name,
+                                         'l_module':l_module,
+                                         'l_ancestor':l_parents,
+                                         'do_debug':command_line.do_debug})
+        return l.split('\n')
+	
     ##########################################################
     @irpy.lazy_property
     def locker(self):
@@ -524,21 +545,24 @@ subroutine provide_{name}
  character*(8+{@size key=name/}),parameter :: irp_here = 'provide_{name}'
 
  {?do_openmp}
- call irp_lock_{name}(.True.)
+ CALL irp_lock_{name}(.TRUE.)
  {/do_openmp}
  
  {?do_debug}
- call irp_enter(irp_here)
+ CALL irp_enter(irp_here)
  {/do_debug}
 
  {#l_children}
  if (.NOT.{name}_is_built) then
-   call provide_{name}
+   CALL provide_{name}
  endif
  {/l_children}
 
  {#do_task}
- !$omp task default(shared) {depend}
+ {?head_touch} 
+ !$OMP TASKGROUP
+ {/head_touch}
+ !$OMP TASK DEFAULT(shared) {depend}
  {/do_task}
 
  {#l_allocate}
@@ -546,18 +570,21 @@ subroutine provide_{name}
  {/l_allocate}
  call bld_{name}
  
- {#do_task}
- !$omp end task
+ {?do_task}
+ !$OMP END TASK
+ {?head_touch}
+ !$OMP END TASKGROUP
+ {/head_touch}
  {/do_task}
   
  {name}_is_built = .TRUE.
 
  {?do_openmp}
- call irp_lock_{name}(.False.)
+ CALL irp_lock_{name}(.FALSE.)
  {/do_openmp}
 
  {?do_debug}
- call irp_leave(irp_here)
+ CALL irp_leave(irp_here)
  {/do_debug}
 
 end subroutine provide_{name}
@@ -583,7 +610,8 @@ end subroutine provide_{name}
 					 'l_children':l_children,
 					 'do_debug':command_line.do_debug,
 					 'do_openmp':command_line.do_openmp,
-					 'do_task':do_task})
+					 'do_task':do_task,
+					 'head_touch':self.is_self_touched})
 		
 	return l.split('\n')
 	

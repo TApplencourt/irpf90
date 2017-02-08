@@ -77,7 +77,8 @@ def main():
                 print '   }'
 
 	comm_world.t_filename_parsed_text # Initialize entity need. Dirty I know.
-
+	
+	print_full_diagram(comm_world.d_entity.values())
 
         print 'digraph Compact { '
         print '   graph [ordering="out" splines=true overlap=false];'
