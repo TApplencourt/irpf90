@@ -253,6 +253,10 @@ class Entity(object):
             result.append("")
         return result
 
+    @irpy.lazy_property
+    def is_source_touch(self):
+	return (Touch in self.d_type_lines or SoftTouch in self.d_type_lines)
+
     @irpy.lazy_property_mutable
     def is_self_touched(self):
         '''Cehck if it will be modified (touch)'''
@@ -406,30 +410,32 @@ class Entity(object):
             return []
 
         template = '''
-subroutine touch_{name}
+SUBROUTINE touch_{name}
 
  {#l_module}
    {name}
  {/l_module}
 
-  implicit none
-  character*(6+{@size key=name/}),parameter :: irp_here = 'touch_{name}'
+  IMPLICIT NONE
+  {?do_debug}
+  CHARACTER*(6+{@size key=name/}),PARAMETER :: irp_here = 'touch_{name}'
+  {/do_debug}
 
  {?do_debug}
-   call irp_enter(irp_here)
+   CALL irp_enter(irp_here)
  {/do_debug}
  
  {#l_ancestor}
-  {name}_is_built = .False.
+  {name}_is_built = .FALSE.
  {/l_ancestor}
  
-  {name}_is_built = .True. 
+  {name}_is_built = .TRUE. 
 
  {?do_debug}
-   call irp_leave(irp_here)
+   CALL irp_leave(irp_here)
  {/do_debug}
 
-end subroutine touch_{name}
+END SUBROUTINE touch_{name}
 '''
 
 	# Only one by EntityColleciton
@@ -449,7 +455,7 @@ end subroutine touch_{name}
                                          'l_module':l_module,
                                          'l_ancestor':l_parents,
                                          'do_debug':command_line.do_debug})
-        return l.split('\n')
+        return [i for i in l.split('\n') if i]
 	
     ##########################################################
     @irpy.lazy_property
@@ -531,7 +537,7 @@ end subroutine touch_{name}
 {?inline}
 !DEC$ ATTRIBUTES FORCEINLINE :: provide_{name}
 {/inline}
-subroutine provide_{name}
+SUBROUTINE provide_{name}
 
  {?do_openmp}
    use omp_lib
@@ -542,7 +548,9 @@ subroutine provide_{name}
  {/l_module}
  
  implicit none
+ {?do_debug}
  character*(8+{@size key=name/}),parameter :: irp_here = 'provide_{name}'
+ {/do_debug}
 
  {?do_openmp}
  CALL irp_lock_{name}(.TRUE.)
@@ -553,28 +561,23 @@ subroutine provide_{name}
  {/do_debug}
 
  {#l_children}
- if (.NOT.{name}_is_built) then
+ IF (.NOT.{name}_is_built) THEN
    CALL provide_{name}
- endif
+ ENDIF
  {/l_children}
 
  {#do_task}
- {?head_touch} 
- !$OMP TASKGROUP
- {/head_touch}
  !$OMP TASK DEFAULT(shared) {depend}
  {/do_task}
 
  {#l_allocate}
- call allocate_{name}
+ CALL allocate_{name}
  {/l_allocate}
- call bld_{name}
+
+ CALL bld_{name}
  
  {?do_task}
  !$OMP END TASK
- {?head_touch}
- !$OMP END TASKGROUP
- {/head_touch}
  {/do_task}
   
  {name}_is_built = .TRUE.
@@ -587,7 +590,7 @@ subroutine provide_{name}
  CALL irp_leave(irp_here)
  {/do_debug}
 
-end subroutine provide_{name}
+END SUBROUTINE provide_{name}
 '''
 	from util import mangled
 
@@ -610,10 +613,8 @@ end subroutine provide_{name}
 					 'l_children':l_children,
 					 'do_debug':command_line.do_debug,
 					 'do_openmp':command_line.do_openmp,
-					 'do_task':do_task,
-					 'head_touch':self.is_self_touched})
-		
-	return l.split('\n')
+					 'do_task':do_task})
+	return  [i for i in l.split('\n') if i.strip()]
 	
     def build_alloc(self,name):
         var = self.d_entity[name]
@@ -626,6 +627,7 @@ subroutine allocate_{name}
    {name}
  {/l_module}
 
+   
    character*(9+{@size key=name/}),parameter :: irp_here = 'allocate_{name}'
    integer                  :: irp_err
    
@@ -715,12 +717,9 @@ end subroutine
         # ~#~#~#~#~#
 
         #Next return the first element of the iterator	
-        ps_text = next(text for filename, text in self.cm_t_filename_parsed_text
-                       if self.prototype.filename[0].startswith(filename))
-        begin = next(i for i, (_, line) in enumerate(ps_text)
-                     if isinstance(line, Begin_provider) if line.filename[1] == self.same_as)
-        end = next(begin + i for i, (_, line) in enumerate(ps_text[begin:])
-                   if isinstance(line, End_provider))
+        ps_text = next(text for filename, text in self.cm_t_filename_parsed_text if self.prototype.filename[0].startswith(filename))
+        begin = next(i for i, (_, line) in enumerate(ps_text) if isinstance(line, Begin_provider) if line.filename[1] == self.same_as)
+        end = next(begin + i for i, (_, line) in enumerate(ps_text[begin:]) if isinstance(line, End_provider))
 
         # Now we now that the text is betern ps_text[begin:end]
         _, line_prototype = ps_text[begin]
@@ -737,10 +736,22 @@ end subroutine
             text.append(([], Simple_line(line_prototype.i, "  irp_rdtsc1 = irp_rdtsc()",
                                          line_prototype.filename)))
 
+        remove = 1
         for vars, line in ps_text[begin + 1:end]:
+
+            if 'call touch' in line.lower:
+                text += [([], Simple_line(line.i, '!$OMP TASKGROUP', line.filename))]
+		remove = -1
+
             text.append((vars, line))
             text += map(lambda x: ([], Simple_line(line.i, x, line.filename)),
                         build_call_provide(vars, self.d_entity))
+
+
+	    if remove == 0:	   
+		text += [([], Simple_line(line.i, '!$OMP END TASKGROUP', line.filename))]
+
+	    remove +=1
 
         # ~#~#~#~#~#
         # Create the subroutine.

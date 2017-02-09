@@ -58,7 +58,7 @@ options['v'] = [ 'version'      , 'Prints version of irpf90', 0 ]
 options['w'] = [ 'warnings'     , 'Activate Warnings', 0 ]
 options['z'] = [ 'openmp'       , 'Activate for OpenMP code', 0 ]
 options['G'] = [ 'graph'        , 'Print the dependecy-graph of the entities (dots format)', 0 ]
-options['T'] = [ 'Task'         , 'Auto-parallelism ', 1 ]
+options['T'] = [ 'Task'         , 'Auto-parallelism ', 0 ]
 
 class CommandLine(object):
 
@@ -211,9 +211,9 @@ do_$LONG = property(fget=do_$LONG)
   def do_run(self):
    return not(any( (self.do_version, self.do_help, self.do_preprocess, self.do_touch, self.do_init)))
 
-  @irpy.lazy_property
-  def do_Task(self):
-    return True
+#  @irpy.lazy_property
+#  def do_Task(self):
+#    return True
 
 command_line = CommandLine()
 
