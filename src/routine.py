@@ -28,11 +28,7 @@
 from irpf90_t import *
 
 from util import logger
-
-try:
-  import irpy
-except:
-  import lib_irpy as irpy
+from lib.manager import irpy
 
 class Routine(object):  
   '''

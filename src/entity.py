@@ -28,11 +28,7 @@ from irpf90_t import *
 from util import *
 from command_line import command_line
 import sys
-try:
-    import irpy
-except:
-    import lib_irpy as irpy
-
+from lib.manager import irpy
 
 class Entity(object):
     '''All lines between BEGIN_PROVIDER and END_PROVIDER included
@@ -164,91 +160,34 @@ class Entity(object):
         return any(self.d_entity[i].is_written for i in self.parents)
 
     @irpy.lazy_property
-    def writer(self):
+    def io_er(self):
         if not self.is_main:
             result = []
-        else:
-            from util import mangled
-            name = self.name
-            result = [ \
-            "subroutine writer_%s(irp_num)"%(name),
-            "  use %s"%(self.fmodule),
-            "  implicit none",
-            "  character*(*), intent(in) :: irp_num",
-            "  logical                   :: irp_is_open",
-            "  integer                   :: irp_iunit" ]
-            if command_line.do_debug:
-                length = len("writer_%s" % (self.name))
-                result += [\
-                "  character*(%d) :: irp_here = 'writer_%s'"%(length,name),
-                "  call irp_enter(irp_here)" ]
-            result += [ \
-            "  if (.not.%s_is_built) then"%(self.same_as),
-            "    call provide_%s"%(self.same_as),
-            "  endif" ]
-            result += map(lambda x: "  call writer_%s(irp_num)" % (x), mangles(self.needs))
-            result += [ \
-            "  irp_is_open = .True.",
-            "  irp_iunit = 9",
-            "  do while (irp_is_open)",
-            "   irp_iunit = irp_iunit+1",
-            "   inquire(unit=irp_iunit,opened=irp_is_open)",
-            "  enddo" ]
-            for n in self.l_name:
-                result += [\
-                "  open(unit=irp_iunit,file='irpf90_%s_'//trim(irp_num),form='FORMATTED',status='UNKNOWN',action='WRITE')"%(n),
-                "  write(irp_iunit,*) %s%s"%(n,build_dim(self.d_entity[n].dim,colons=True)),
-                "  close(irp_iunit)" ]
-            if command_line.do_debug:
-                result.append("  call irp_leave(irp_here)")
-            result.append("end subroutine writer_%s" % (name))
-            result.append("")
-        return result
+        
+        from util import mangled
+  	from util import ashes_env
+        name = self.name
+
+	d_template= {'name':name,
+                 'fmodule':self.fmodule,
+	         'same_as' : self.same_as,
+                 'do_debug':command_line.do_debug,
+                 'children':mangled(self.needs,self.d_entity),
+                 'group_entity': [{'name':n,'dim':build_dim(self.cm_d_variable[n].dim,colons=True)} for n in self.l_name]}
+
+            
+        return ashes_env('io.f90',d_template).split('\n')
+
+    def reader(self):
+	return io.er.split('TOKEN_SPLIT')[0]
+
+    def writer(self):
+	return io.er.split('TOKEN_SPLIT')[1]
 
     @irpy.lazy_property_mutable
     def is_read(self):
         '''Check if it  will be read from disk'''
         return any(self.d_entity[i].is_read for i in self.parents)
-
-    @irpy.lazy_property
-    def reader(self):
-        if not self.is_main:
-            result = []
-        else:
-            from util import mangled
-            name = self.name
-            result = [ \
-            "subroutine reader_%s(irp_num)"%(name),
-            "  use %s"%(self.fmodule),
-            "  implicit none",
-            "  character*(*), intent(in) :: irp_num",
-            "  logical                   :: irp_is_open",
-            "  integer                   :: irp_iunit" ]
-            if command_line.do_debug:
-                length = len("reader_%s" % (name))
-                result += [\
-                "  character*(%d) :: irp_here = 'reader_%s'"%(length,name),
-                "  call irp_enter(irp_here)" ]
-            result += map(lambda x: "  call reader_%s(irp_num)" % (x), mangled(self.needs))
-            result += [ \
-            "  irp_is_open = .True.",
-            "  irp_iunit = 9",
-            "  do while (irp_is_open)",
-            "   inquire(unit=irp_iunit,opened=irp_is_open)",
-            "  enddo"]
-            for n in self.l_name:
-                result += [\
-                "  open(unit=irp_iunit,file='irpf90_%s_'//trim(irp_num),form='FORMATTED',status='OLD',action='READ')"%(n),
-                "  read(irp_iunit,*) %s%s"%(n,build_dim(self.cm_d_variable[n].dim,colons=True)),
-                "  close(irp_iunit)" ]
-            result += [ \
-            "  call touch_%s"%(name),
-            "  %s_is_built = .True."%(name) ]
-            if command_line.do_debug:
-                result.append("  call irp_leave(irp_here)")
-            result.append("end subroutine reader_%s" % (name))
-            result.append("")
-        return result
 
     @irpy.lazy_property
     def is_source_touch(self):

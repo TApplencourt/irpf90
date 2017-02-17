@@ -59,6 +59,7 @@ simple_dict = {
     "begin_provider": Begin_provider,
     "begin_provider_immutable": Begin_provider,
     "&begin_provider": Cont_provider,
+    "&begin_provider_immutable": Cont_provider,
     "end_provider": End_provider,
     "end_provider_immutable": End_provider,
     "assert": Assert,

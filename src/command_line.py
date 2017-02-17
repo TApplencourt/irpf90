@@ -24,11 +24,7 @@
 #   31062 Toulouse Cedex 4      
 #   scemama@irsamc.ups-tlse.fr
 
-try:
-  import irpy
-except:
-  import lib_irpy as irpy
-
+from lib.manager import irpy
 
 import getopt, sys
 from version import version

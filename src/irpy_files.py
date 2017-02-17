@@ -1,19 +1,14 @@
 from util import parmap, lazy_write_file
 from util import flatten, listdir
+from util import logger
 
-try:
-    import irpy
-except:
-    import lib_irpy as irpy
+from lib.manager import irpy
 
 import os
 import irpf90_t
 import sys
 
 from command_line import command_line
-
-from util import logger
-
 
 class Irpy_comm_world(object):
     '''Maestro.'''

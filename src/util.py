@@ -46,9 +46,9 @@ logger.setLevel(30)
 # ~#~#~#~#~#
 #  A S H E S _ T E M P L A T E S
 # ~#~#~#~#~#
-from ashes import AshesEnv
+from lib.manager import ashes 
 import os
-ashes_env = AshesEnv([os.path.join(os.path.dirname(__file__),'templates')])
+ashes_env = ashes.AshesEnv([os.path.join(os.path.dirname(__file__),'templates')])
 
 def remove_empy_lines(text):
 	return os.linesep.join([s for s in text.splitlines() if s.strip()])

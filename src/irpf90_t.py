@@ -32,11 +32,8 @@ from zlib import crc32
 import os
 irp_id = abs(crc32(os.getcwd()))
 
-try:
-  import irpy
-except:
-  import lib_irpy as irpy
-
+from lib.manager import irpy
+from util import logger
 
 class Line(object):
     def __init__(self, i, text, filename):
