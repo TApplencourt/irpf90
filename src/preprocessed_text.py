@@ -57,8 +57,10 @@ simple_dict = {
     "subst": Subst,
     "end_doc": End_doc,
     "begin_provider": Begin_provider,
+    "begin_provider_immu": Begin_provider,
     "&begin_provider": Cont_provider,
     "end_provider": End_provider,
+    "end_provider_immu": End_provider,
     "assert": Assert,
     "touch": Touch,
     "soft_touch": SoftTouch,
@@ -674,8 +676,10 @@ def irp_simple_statements(text):
 
         if command_line.do_profile:
             temp += [Simple_line(0, "call irp_init_timer()", line.filename)]
-        if command_line.do_openmp:
-            temp += [Simple_line(0, " call irp_init_locks_%s()" % (irp_id), line.filename)]
+# Need to choose between lazy lock or are big full initialization
+#        if command_line.do_openmp:
+#            temp += [Simple_line(0, " call irp_init_locks_%s()" % (irp_id), line.filename)]
+
         temp += [Call(0, " call %s" % (program_name), line.filename)]
         if command_line.do_profile:
             temp += [Simple_line(0, "call irp_print_timer()", line.filename)]

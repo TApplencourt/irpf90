@@ -271,13 +271,21 @@ def create_build_remaining(f,ninja):
 
     if extension.lower() in ['f', 'f90']:
         result = ["build {target_o}: compile_fortran_{irp_id} {target_i}"]
+	result_make = [
+            '{target_o}: {target_i}',
+            '\t@printf "F: {short_target_o} -> {short_target_i}\\n"',
+            "\t@$(FC) $(FCFLAGS) -c $^ -o $@", ""]
+
     elif extension.lower() in ['c']:
         result = ["build {target_o}: compile_c_{irp_id} {target_i}"]
     elif extension.lower() in ['cxx', 'cpp']:
         result = ["build {target_o}: compile_cxx_{irp_id} {target_i}"]
 
     result += ["   short_in  = {short_target_i}", "   short_out = {short_target_o}", ""]
-    return '\n'.join(result).format(**locals())
+
+    result_final = result if ninja else result_make 
+
+    return '\n'.join(result_final).format(**locals())
 
 
 def create_makefile(d_flags,d_var,irpf90_flags,ninja=True):

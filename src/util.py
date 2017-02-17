@@ -42,6 +42,17 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger('Irpf90')
 logger.setLevel(30)
 
+
+# ~#~#~#~#~#
+#  A S H E S _ T E M P L A T E S
+# ~#~#~#~#~#
+from ashes import AshesEnv
+import os
+ashes_env = AshesEnv([os.path.join(os.path.dirname(__file__),'templates')])
+
+def remove_empy_lines(text):
+	return os.linesep.join([s for s in text.splitlines() if s.strip()])
+
 # ~#~#~#~#~#
 #  / /  _  R E L A T E D
 # ~#~#~#~#~#
@@ -277,6 +288,28 @@ def flatten(l_2d):
 # ~#~#~#~#~#
 #  I R P  _  R E L A T E D
 # ~#~#~#~#~#
+def dimsize(x):
+            # (str) -> str
+            '''Compute the number of element in the array'''
+            try:
+                b0, b1 = x.split(':')
+            except ValueError:
+                return x
+
+            b0_is_digit = b0.replace('-', '').isdigit()
+            b1_is_digit = b1.replace('-', '').isdigit()
+
+            if b0_is_digit and b1_is_digit:
+                size = str(int(b1) - int(b0) + 1)
+            elif b0_is_digit:
+                size = "(%s) - (%d)" % (b1, int(b0) - 1)
+            elif b1_is_digit:
+                size = "(%d) - (%s)" % (int(b1) + 1, b0)
+            else:
+                size = "(%s) - (%s) + 1" % (b1, b0)
+            return size
+
+
 def build_dim(l_dim, colons=False):
     # (List[str],bool) -> str
     '''Contruct a valid fortran90 array dimension code from a list dimension
@@ -298,10 +331,16 @@ def mangled(l_ent, d_ent):
     '''Create a uniq list of providier (merge the multione) '''
     return OrderedUniqueList(d_ent[name].same_as for name in l_ent)
 
-def build_use(l_ent, d_ent):
+def build_use(l_ent, d_ent,use=True):
     # (List, Dict[str,Entity]) -> list
     '''Contruct the fortran90 'use' statement for the list of entity'''
-    return OrderedUniqueList("  use %s" % d_ent[x].fmodule for x in l_ent)
+
+    l_name = OrderedUniqueList(d_ent[x].fmodule for x in l_ent)
+    if not use:
+	return l_name
+    else:
+	return ["  use %s" % n for n in l_name]
+  
 
 def build_call_provide(l_ent, d_ent):
     # (List, Dict[str,Entity]) -> list

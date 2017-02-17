@@ -74,19 +74,17 @@ class Fmodule(object):
     @irpy.lazy_property
     def head(self):
         '''The module who containt the declaration of the entity'''
-        body = list(self.use)
-	body += list(self.dec)
-        body += [header for var in self.l_entity for header in var.header]
 
+	if self.use or self.dec or self.l_entity:
 
-	if body:
-		result = ["module %s" % (self.name)]
-		result += body
-	        result += ["end module %s" % (self.name)]
+		d_template = {'name' : self.name,
+			      'use':list(self.use),'usr_declaration':list(self.dec),
+			      'irp_declaration':[e.d_header for e in self.l_entity],
+			      'coarray': command_line.coarray,
+			      'align': False if command_line.align == 1 else command_line.align}
+		return [i for i in ashes_env.render('module.f90', d_template).split('\n') if i]
 	else:
-		result = []
-
-        return result
+		return []
 
     @irpy.lazy_property
     def has_irp_module(self):
@@ -106,7 +104,9 @@ class Fmodule(object):
         result = []
         for var in self.l_entity:
             result += var.provider
-            result += var.builder
+	    if not var.is_protected:
+                result += var.builder
+	        result += var.allocater
             if var.is_read:
                 result += var.reader
             if var.is_written:
@@ -213,14 +213,14 @@ class Fmodule(object):
 		Because user can define F90 Type, we need to keep the correct order.
 	
 	Warning:
-		If we uniquify that can cause a problem with the type in guess.
-		```type toto
-			integer :: n
-		   end type toto
-		   integer :: n
+		If we uniquify that can cause a problem.
+		```TYPE toto
+			INTEGER :: n
+		   END TYPE toto
+		   INTEGER :: n
 		```
 	Fix:
-        	We need to support Type keyword.
+        	We need to support TYPE keyword.
 
 	'''
 

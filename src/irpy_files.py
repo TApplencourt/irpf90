@@ -286,7 +286,7 @@ class Irpy_comm_world(object):
             # Module data
             if m.has_irp_module:
                 filename = os.path.join(irpdir, '%s.irp.module.F90' % m.filename)
-                text = '\n'.join(m.header + m.head)
+                text = '\n'.join(m.head)
                 lazy_write_file(filename, '%s\n' % text)
 
             # Subroutines
@@ -312,17 +312,8 @@ class Irpy_comm_world(object):
 
     def create_lock(self):
         from util import lazy_write_file
-        l = sorted(self.d_entity.keys())
+	from util import ashes_env
 
-        out = []
-        for v in l:
-            out += self.d_entity[v].locker
-
-        out += ["subroutine irp_init_locks_%s()" % (irpf90_t.irp_id), " implicit none"]
-        for v in l:
-            out += ["  call irp_lock_%s(.True.)" % v]
-            out += ["  call irp_lock_%s(.False.)" % v]
-        out += ["end subroutine", ""]
-
+	str_ = ashes_env.render('irp_lock.F90', {'entity':sorted(self.d_entity)})
         filename = os.path.join(irpf90_t.irpdir, 'irp_locks.irp.F90')
-        lazy_write_file(filename, '\n'.join(out))
+        lazy_write_file(filename, str_)
