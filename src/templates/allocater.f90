@@ -9,12 +9,19 @@ SUBROUTINE  allocate_{name}
 
   CHARACTER*(9+{@size key=name/}),PARAMETER :: irp_here = 'allocate_{name}'
   INTEGER :: irp_err
+  LOGICAL :: alloc
 
-  IF ( ALLOCATED({name}) .AND.( &
+  alloc = ALLOCATED({name})
+
+  IF ( alloc .AND.( &
      {#l_dim}
-     ( SIZE({name},{rank}) /= {value} ) {@sep}.OR.{/sep} &
+     ( SIZE({name},{rank}) == {value} ) {@sep}.OR.{/sep} &
      {/l_dim})) THEN
 
+     RETURN
+  ELSE IF (.NOT.alloc) THEN
+      GO TO 666
+  ELSE 
      {?do_memory} PRINT*, irp_here//': Deallocated {name}' {/do_memory}
      DEALLOCATE({name},STAT=irp_err)
 
@@ -24,10 +31,6 @@ SUBROUTINE  allocate_{name}
      ENDIF
 
      GO TO 666
-  ELSE IF (.NOT.ALLOCATED({name})) THEN
-      GO TO 666
-  ELSE
-      RETURN
   ENDIF
 
   666 CONTINUE
@@ -38,7 +41,7 @@ SUBROUTINE  allocate_{name}
   {:else}
   ALLOCATE({name} ({dim}[*]), STAT=irp_err)
   {/do_corray}
-
+  
   IF (irp_err /= 0) then
       PRINT*, irp_here//': Allocation failed: {name}'
       PRINT*,' size: {dim}'
