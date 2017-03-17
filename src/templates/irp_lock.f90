@@ -24,7 +24,7 @@ SUBROUTINE irp_lock_{.}(set)
        CALL omp_unset_lock({.}_lock)
   ENDIF
   
- {?do_debug} CALL irp_leach(irp_here) {/do_debug}
+ {?do_debug} CALL irp_leave(irp_here) {/do_debug}
 
 END SUBROUTINE irp_lock_{.}
 {/entity}

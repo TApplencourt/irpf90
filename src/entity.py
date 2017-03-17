@@ -30,6 +30,7 @@ from command_line import command_line
 import sys
 from lib.manager import irpy
 
+
 class Entity(object):
     '''All lines between BEGIN_PROVIDER and END_PROVIDER included
 
@@ -163,26 +164,31 @@ class Entity(object):
     def io_er(self):
         if not self.is_main:
             result = []
-        
+
         from util import mangled
-  	from util import ashes_env
+        from util import ashes_env
         name = self.name
 
-	d_template= {'name':name,
-                 'fmodule':self.fmodule,
-	         'same_as' : self.same_as,
-                 'do_debug':command_line.do_debug,
-                 'children':mangled(self.needs,self.d_entity),
-                 'group_entity': [{'name':n,'dim':build_dim(self.cm_d_variable[n].dim,colons=True)} for n in self.l_name]}
+        d_template = {
+            'name': name,
+            'fmodule': self.fmodule,
+            'same_as': self.same_as,
+            'do_debug': command_line.do_debug,
+            'children': mangled(self.needs, self.d_entity),
+            'group_entity': [{
+                'name': n,
+                'dim': build_dim(
+                    self.cm_d_variable[n].dim, colons=True)
+            } for n in self.l_name]
+        }
 
-            
-        return ashes_env('io.f90',d_template).split('\n')
+        return ashes_env('io.f90', d_template).split('\n')
 
     def reader(self):
-	return io.er.split('TOKEN_SPLIT')[0]
+        return io.er.split('TOKEN_SPLIT')[0]
 
     def writer(self):
-	return io.er.split('TOKEN_SPLIT')[1]
+        return io.er.split('TOKEN_SPLIT')[1]
 
     @irpy.lazy_property_mutable
     def is_read(self):
@@ -275,8 +281,8 @@ class Entity(object):
     # ~ # ~ # ~
     @irpy.lazy_property
     def is_protected(self):
-	return self.text[0].lower.startswith('begin_provider_immu')
-    
+        return self.text[0].lower.startswith('begin_provider_immu')
+
     @irpy.lazy_property
     def type(self):
         # () -> str
@@ -303,9 +309,11 @@ class Entity(object):
             'name': self.name,
             'type': self.type,
             'main': self.is_main,
-            'dim': build_dim(self.dim,colons=True),
-            'protected': '\n'.join(self.allocater+self.builder) if self.is_protected else False}
-	return d_template
+            'dim': build_dim(
+                self.dim, colons=True),
+            'protected': '\n'.join(self.allocater + self.builder) if self.is_protected else False
+        }
+        return d_template
 
     ############################################################
     @irpy.lazy_property
@@ -340,8 +348,11 @@ class Entity(object):
 
         return {
             'name': self.name,
-            'l_module':  [n for n in build_use(self.parents + [self.name], self.d_entity,use=False)],
-            'l_ancestor': [n for n in mangled(self.parents, self.d_entity)]}
+            'l_module':
+            [n for n in build_use(
+                self.parents + [self.name], self.d_entity, use=False)],
+            'l_ancestor': [n for n in mangled(self.parents, self.d_entity)]
+        }
 
     ##########################################################
 
@@ -374,10 +385,12 @@ class Entity(object):
 
         from util import mangled
 
-	import util
+        import util
         name = self.name
-        l_module = [x for x in build_use([self.name] + self.to_provide, self.d_entity,use=False)]
+        l_module = [x for x in build_use([self.name] + self.to_provide, self.d_entity, use=False)]
         l_children = [x for x in mangled(self.to_provide, self.d_entity)]
+
+        l_entity = [self.d_entity[n] for n in self.l_name]
 
         l = ashes_env.render('provider.f90', {
             'name': name,
@@ -386,40 +399,40 @@ class Entity(object):
             'do_debug': command_line.do_debug,
             'do_openmp': command_line.do_openmp,
             'do_task': command_line.do_Task,
-	    'do_corray': command_line.do_coarray,
-	    'dim': ','.join(self.dim),
+            'do_corray': command_line.do_coarray,
+            'dim': ','.join(self.dim),
+            'l_entity': [{
+                'name': i.name,
+                'dim': ','.join(i.dim)
+            } for i in l_entity]
         })
         return [i for i in l.split('\n') if i.strip()]
 
     @irpy.lazy_property
     def allocater(self):
-        if not self.is_main:
-            return []
-
         from util import mangled
 
         import util
         name = self.name
-        l_module = [x for x in build_use([self.name] + self.to_provide, self.d_entity,use=False)]
+        l_module = [x for x in build_use([self.name] + self.to_provide, self.d_entity, use=False)]
         if self.is_protected:
-                l_module.remove(self.fmodule)
-
+            l_module.remove(self.fmodule)
 
         l_dim = [{'name': name, 'rank': i + 1, 'value': dimsize(k)} for i, k in enumerate(self.dim)]
-
 
         l = ashes_env.render('allocater.f90', {
             'name': name,
             'l_module': l_module,
             'do_debug': command_line.do_debug,
             'do_corray': command_line.do_coarray,
+            'do_memory': command_line.do_memory,
             'dim': ','.join(self.dim),
             'l_dim': l_dim
         })
         return [i for i in l.split('\n') if i.strip()]
 
- 
-    ##########################################################
+##########################################################
+
     @irpy.lazy_property
     def builder(self):
         if not self.is_main:
@@ -458,7 +471,6 @@ class Entity(object):
             text += map(lambda x: ([], Simple_line(line.i, x, line.filename)),
                         build_call_provide(vars, self.d_entity))
 
-
         # ~#~#~#~#~#
         # Create the subroutine.
         # ~#~#~#~#~#
@@ -470,11 +482,11 @@ class Entity(object):
         # Add the use statement
         result += ["subroutine bld_%s" % (self.name)]
 
-        l_use = build_use([self.name] + self.needs, self.d_entity,use=False)
-	if self.is_protected:
-		l_use.remove(self.fmodule)
+        l_use = build_use([self.name] + self.needs, self.d_entity, use=False)
+        if self.is_protected:
+            l_use.remove(self.fmodule)
 
-	result += ['USE %s'%n for n in l_use]
+        result += ['USE %s' % n for n in l_use]
 
         import parsed_text
         # Move the variable to top, and add the text

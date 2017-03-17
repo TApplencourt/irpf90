@@ -27,8 +27,9 @@
 from command_line import command_line
 import irpf90_t
 
+
 def run():
-  template = """
+    template = """
 program codelet_%(name)s
   implicit none
   integer :: i
@@ -58,12 +59,11 @@ end
 
   """
 
-  name, NMAX, precondition, filename = command_line.codelet
-  if precondition is None:
-    precondition = ""
-  else:
-    precondition = "PROVIDE "+precondition
-  
-  from util import lazy_write_file
-  lazy_write_file(filename,template%locals())
+    name, NMAX, precondition, filename = command_line.codelet
+    if precondition is None:
+        precondition = ""
+    else:
+        precondition = "PROVIDE " + precondition
 
+    from util import lazy_write_file
+    lazy_write_file(filename, template % locals())

@@ -24,7 +24,6 @@
 #   31062 Toulouse Cedex 4      
 #   scemama@irsamc.ups-tlse.fr
 
-
 rdtsc = """
 #ifdef __i386
 double irp_rdtsc_(void) {
@@ -47,14 +46,16 @@ import os
 import threading
 from irpf90_t import irpdir
 
+
 def build_rdtsc():
-  filename = irpdir+"irp_rdtsc.c"
-  file = open(filename,'w')
-  file.write(rdtsc)
-  file.close()
+    filename = irpdir + "irp_rdtsc.c"
+    file = open(filename, 'w')
+    file.write(rdtsc)
+    file.close()
+
 
 def build_module(variables):
-  data = """
+    data = """
 module irp_timer
  double precision :: irp_profile(3,%(n)d) 
  integer          :: irp_order(%(n)d) 
@@ -153,23 +154,23 @@ subroutine irp_print_timer()
  print *, 'rdtsc latency :', irp_rdtsc_shift, ' cycles'
 end
   """
-  label = {}
-  for i in variables:
-    vi = variables[i]
-    label[vi.label] = vi.same_as
-  text = []
-  lmax = 0
-  for l in label:
-    text.append(" irp_profile_label(%d) = '%s'"%(l,label[l]))
-    lmax = max(lmax,l)
-  text.sort()
-  text = '\n'.join(text)
-  data = data%{'text': text, 'n':lmax}
-  file = open("IRPF90_temp/irp_profile.irp.F90",'w')
-  file.write(data)
-  file.close()
+    label = {}
+    for i in variables:
+        vi = variables[i]
+        label[vi.label] = vi.same_as
+    text = []
+    lmax = 0
+    for l in label:
+        text.append(" irp_profile_label(%d) = '%s'" % (l, label[l]))
+        lmax = max(lmax, l)
+    text.sort()
+    text = '\n'.join(text)
+    data = data % {'text': text, 'n': lmax}
+    file = open("IRPF90_temp/irp_profile.irp.F90", 'w')
+    file.write(data)
+    file.close()
+
 
 def run(d_entity):
-  build_module(d_entity)
-  build_rdtsc()
-
+    build_module(d_entity)
+    build_rdtsc()

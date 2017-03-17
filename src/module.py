@@ -30,6 +30,7 @@ import preprocessed_text
 from util import *
 from entity import Entity
 
+
 def put_info(text, filename):
 
     lenmax = 80 - len(filename)
@@ -37,26 +38,25 @@ def put_info(text, filename):
 
     str_ = '{text:{width}} ! {filename}:{i:4}'
     for _, line in text:
-	line.text = str_.format(text=line.text,filename=line.filename,i=line.i,width=lenmax)
+        line.text = str_.format(text=line.text, filename=line.filename, i=line.i, width=lenmax)
     return text
 
 
 class Fmodule(object):
 
-    header = [ "! -*- F90 -*-", 
-               "!",
-               "!-----------------------------------------------!",
-               "! This file was generated with the irpf90 tool. !",
-               "!                                               !",
-               "!           DO NOT MODIFY IT BY HAND            !",
-               "!-----------------------------------------------!", 
-	       ""]
+    header = [
+        "! -*- F90 -*-", "!", "!-----------------------------------------------!",
+        "! This file was generated with the irpf90 tool. !",
+        "!                                               !",
+        "!           DO NOT MODIFY IT BY HAND            !",
+        "!-----------------------------------------------!", ""
+    ]
 
     def __init__(self, text, filename, d_variable):
         self.text = put_info(text, filename)
         self.filename = filename[:-6]
         self.name = "%s_mod" % (self.filename).replace('/', '__').replace('.', 'Dot')
-	self.d_all_variable = d_variable
+        self.d_all_variable = d_variable
 
     @irpy.lazy_property
     def prog_name(self):
@@ -75,20 +75,23 @@ class Fmodule(object):
     def head(self):
         '''The module who containt the declaration of the entity'''
 
-	if self.use or self.dec or self.l_entity:
+        if self.use or self.dec or self.l_entity:
 
-		d_template = {'name' : self.name,
-			      'use':list(self.use),'usr_declaration':list(self.dec),
-			      'irp_declaration':[e.d_header for e in self.l_entity],
-			      'coarray': command_line.coarray,
-			      'align': False if command_line.align == 1 else command_line.align}
-		return [i for i in ashes_env.render('module.f90', d_template).split('\n') if i]
-	else:
-		return []
+            d_template = {
+                'name': self.name,
+                'use': list(self.use),
+                'usr_declaration': list(self.dec),
+                'irp_declaration': [e.d_header for e in self.l_entity],
+                'coarray': command_line.coarray,
+                'align': False if command_line.align == 1 else command_line.align
+            }
+            return [i for i in ashes_env.render('module.f90', d_template).split('\n') if i]
+        else:
+            return []
 
     @irpy.lazy_property
     def has_irp_module(self):
-	return bool(self.head)
+        return bool(self.head)
 
     @irpy.lazy_property
     def needed_vars(self):
@@ -100,23 +103,22 @@ class Fmodule(object):
 
     @irpy.lazy_property
     def generated_text(self):
-	'Routine genereraed by the IRPF90. provide, build, ...'
+        'Routine genereraed by the IRPF90. provide, build, ...'
         result = []
         for var in self.l_entity:
             result += var.provider
-	    if not var.is_protected:
+            if not var.is_protected:
                 result += var.builder
-	        result += var.allocater
+                result += var.allocater
             if var.is_read:
                 result += var.reader
             if var.is_written:
                 result += var.writer
-	
+
         return result
 
     @irpy.lazy_property
     def residual_text_use_dec(self):
-
         def remove_providers(text):
             result = []
             inside = False
@@ -134,21 +136,21 @@ class Fmodule(object):
 
             result = []
             variable_list = []
-	    skip_interface = False
+            skip_interface = False
             for vars, line in text:
-		if type(line) in [Interface, End_interface]:
-			skip_interface = not skip_interface
+                if type(line) in [Interface, End_interface]:
+                    skip_interface = not skip_interface
 
-		if skip_interface:
-			result.append((vars, line))
-			continue
+                if skip_interface:
+                    result.append((vars, line))
+                    continue
 
-
-                if type(line) in [Subroutine, Function, Program]:		
+                if type(line) in [Subroutine, Function, Program]:
                     #Deep copy...	
                     variable_list = list(vars)
                 elif type(line) == End:
-                    result += [([], Use(line.i, x, line.filename)) for x in build_use(variable_list, self.d_all_variable)]
+                    result += [([], Use(line.i, x, line.filename))
+                               for x in build_use(variable_list, self.d_all_variable)]
                 else:
                     variable_list += vars
 
@@ -156,19 +158,19 @@ class Fmodule(object):
             return result
 
         def extract_use_dec_text(text):
-	    # (List[ Tuple(Entity,Line) ]) -> (List[ Tuple(Entity,Line),List[ Tuple(Entity,Line),List[ Tuple(Entity,Line))
-	    '''Extract the global declaration statement and module use form the declaration of function. '''
+            # (List[ Tuple(Entity,Line) ]) -> (List[ Tuple(Entity,Line),List[ Tuple(Entity,Line),List[ Tuple(Entity,Line))
+            '''Extract the global declaration statement and module use form the declaration of function. '''
 
             inside = 0
-            result,dec,use,module = [],[],[],[]
+            result, dec, use, module = [], [], [], []
 
             for vars, line in text:
-		
-                if isinstance(line, (Subroutine, Function, Program,Interface,Module)):
+
+                if isinstance(line, (Subroutine, Function, Program, Interface, Module)):
                     inside += 1
 
-		if type(line) == Module:
-			module.append((vars,line))
+                if type(line) == Module:
+                    module.append((vars, line))
 
                 if inside:
                     result.append((vars, line))
@@ -177,22 +179,22 @@ class Fmodule(object):
                         use.append((vars, line))
                     elif type(line) == Declaration:
                         dec.append((vars, line))
-			
 
-                if isinstance(line,(End,End_interface,End_module)):
-		    inside += -1
-		    
-	    if inside:
-		print 'Something wrong append'
-		sys.exit(1)
+                if isinstance(line, (End, End_interface, End_module)):
+                    inside += -1
+
+            if inside:
+                print 'Something wrong append'
+                sys.exit(1)
 
             return use, module, dec, result
 
         result = remove_providers(self.text)
         result = modify_functions(result)
-        
+
         from collections import namedtuple
-        Residual_text_use_dec = namedtuple('Residual_text_use_dec', ['use', 'module', 'dec', 'result'])
+        Residual_text_use_dec = namedtuple('Residual_text_use_dec',
+                                           ['use', 'module', 'dec', 'result'])
 
         return Residual_text_use_dec(*extract_use_dec_text(result))
 
@@ -202,12 +204,12 @@ class Fmodule(object):
 
     @irpy.lazy_property
     def gen_mod(self):
-	'''List of module generated by the user in this module...'''
+        '''List of module generated by the user in this module...'''
         return set("%s" % line.subname for _, line in self.residual_text_use_dec.module)
 
     @irpy.lazy_property
     def dec(self):
-	'''The declaration of this module
+        '''The declaration of this module
 	
 	Note:
 		Because user can define F90 Type, we need to keep the correct order.
@@ -224,10 +226,10 @@ class Fmodule(object):
 
 	'''
 
-	l = [" %s" % line.text for _, line in self.residual_text_use_dec.dec]
-	from util import uniquify
-	if len(l) != len(uniquify(l)):
-		raise NotImplementedError
+        l = [" %s" % line.text for _, line in self.residual_text_use_dec.dec]
+        from util import uniquify
+        if len(l) != len(uniquify(l)):
+            raise NotImplementedError
 
         return l
 
@@ -241,29 +243,28 @@ class Fmodule(object):
             result += map(lambda x: ([], Simple_line(line.i, x, line.filename)),
                           build_call_provide(vars, self.d_all_variable))
 
-
         from parsed_text import move_to_top_list, move_interface
         move_to_top_list(result, [Declaration, Implicit, Use])
-	move_interface(result)
+        move_interface(result)
 
-        return  [line.text for _, line in result]
+        return [line.text for _, line in result]
 
     @irpy.lazy_property
     def needed_modules(self):
-	l = set(x.split(',only').pop(0).split()[1] for x in self.generated_text + self.head + self.residual_text if x.lstrip().startswith("use "))
+        l = set(
+            x.split(',only').pop(0).split()[1]
+            for x in self.generated_text + self.head + self.residual_text
+            if x.lstrip().startswith("use "))
 
         if self.name in l:
             l.remove(self.name)
 
         return l
 
-	
     @irpy.lazy_property
     def needed_modules_irp(self):
         return [i for i in self.needed_modules if i.endswith("_mod")]
 
     @irpy.lazy_property
     def needed_modules_usr(self):
-	return [i for i in self.needed_modules if not i.endswith("_mod")]
-
-
+        return [i for i in self.needed_modules if not i.endswith("_mod")]

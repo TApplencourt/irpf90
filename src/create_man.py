@@ -27,8 +27,9 @@
 from entity import Entity
 from routine import Routine
 from irpf90_t import mandir
-from util import parmap, build_dim,lazy_write_file
+from util import parmap, build_dim, lazy_write_file
 import os
+
 
 def do_print_short(entity):
     assert type(entity) == Entity
@@ -107,7 +108,6 @@ def do_print(entity, d_entity):
     lazy_write_file("%s%s.l" % (mandir, name), '%s\n' % str_)
 
 
-
 ######################################################################
 def do_print_subroutines(sub):
     assert type(sub) == Routine
@@ -164,11 +164,11 @@ def run(d_entity, d_routine):
 
     l_subs = d_routine.values()
 
-    l_data_to_write = [("%s.l" % os.path.join(mandir, s.name), do_print_subroutines(s)) for s in l_subs]
-
+    l_data_to_write = [("%s.l" % os.path.join(mandir, s.name), do_print_subroutines(s))
+                       for s in l_subs]
 
     def worker(l):
-	filename, text = l
+        filename, text = l
         lazy_write_file(filename, text)
 
     parmap(worker, l_data_to_write)

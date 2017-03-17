@@ -6,7 +6,6 @@
 !           DO NOT MODIFY IT BY HAND            !
 !-----------------------------------------------!
 
-
 MODULE {name}
 
 {#use}

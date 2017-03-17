@@ -10,6 +10,7 @@ import sys
 
 from command_line import command_line
 
+
 class Irpy_comm_world(object):
     '''Maestro.'''
 
@@ -114,8 +115,8 @@ class Irpy_comm_world(object):
         l_duplicate = [x for x in l_ent if l_ent.count(x) > 1]
         if l_duplicate:
             from util import logger
-            logger.error('You have duplicate PROVIDER: %s' % ' '.join(
-                [e.name for e in l_duplicate]))
+            logger.error('You have duplicate PROVIDER: %s' %
+                         ' '.join([e.name for e in l_duplicate]))
             import sys
             sys.exit(1)
 
@@ -230,7 +231,7 @@ class Irpy_comm_world(object):
         d_routine = self.d_routine
 
         import parsed_text
-        vtuple = [(v,s.same_as, s.regexp) for v, s in d_entity.iteritems()]
+        vtuple = [(v, s.same_as, s.regexp) for v, s in d_entity.iteritems()]
 
         def worker_parsed(filename_text):
             filename, text = filename_text
@@ -290,8 +291,16 @@ class Irpy_comm_world(object):
             lazy_write_file(filename, '%s\n' % text)
 
     def create_stack(self):
-        import irp_stack
-        irp_stack.create()
+        from util import lazy_write_file
+        from util import ashes_env
+
+        str_ = ashes_env.render('irp_stack.F90', {
+            'do_debug': command_line.do_debug,
+            'do_openmp': command_line.do_openmp,
+            'do_memory': command_line.do_memory
+        })
+        filename = os.path.join(irpf90_t.irpdir, 'irp_stack.irp.F90')
+        lazy_write_file(filename, str_)
 
     def create_buildfile(self, ninja):
         import build_file
@@ -307,8 +316,8 @@ class Irpy_comm_world(object):
 
     def create_lock(self):
         from util import lazy_write_file
-	from util import ashes_env
+        from util import ashes_env
 
-	str_ = ashes_env.render('irp_lock.F90', {'entity':sorted(self.d_entity)})
+        str_ = ashes_env.render('irp_lock.F90', {'entity': sorted(self.d_entity)})
         filename = os.path.join(irpf90_t.irpdir, 'irp_locks.irp.F90')
         lazy_write_file(filename, str_)
