@@ -60,7 +60,7 @@ ARCH = $(addprefix $(CURDIR)/,IRPF90_temp/irpf90.a)
 all: $(EXE)
 
 define run
-	$(BUILD_SYSTEM) -C $(dir $(BUILD_FILE) ) -f $(notdir $(BUILD_FILE) ) $(1)",
+	$(BUILD_SYSTEM) -C $(dir $(BUILD_FILE) ) -f $(notdir $(BUILD_FILE) ) $(1)
 endef
 
 #We allow for the user to ask for 'relative' path

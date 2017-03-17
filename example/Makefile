@@ -63,6 +63,8 @@ define run
 	$(BUILD_SYSTEM) -C $(dir $(BUILD_FILE) ) -f $(notdir $(BUILD_FILE) ) $(1)
 endef
 
+#We allow for the user to ask for 'relative' path
+#But the IRPF90 build system use absolute path.
 $(EXE): $(ARCH)
 	@printf "%b" "\033[0;32m Build $@...\033[m\n"
 	@$(call run, $(addprefix $(CURDIR)/, $@)) && touch $@
