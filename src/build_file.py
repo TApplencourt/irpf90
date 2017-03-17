@@ -282,49 +282,15 @@ def create_build_remaining(f, ninja):
 
 def create_makefile(d_flags, d_var, irpf90_flags, ninja=True):
 
-    result = [
-        "IRPF90= irpf90", "IRPF90FLAGS= %s" % irpf90_flags,
-        "BUILD_SYSTEM= %s" % ('ninja' if ninja else 'make'), ""
-    ]
+    d = {'BUILD_SYSTEM': 'ninja' if ninja else 'make',
+	 'irpf90_flags': irpf90_flags}
 
-    # Export all the env variable used by irpf90
-    result += [
-        '.EXPORT_ALL_VARIABLES:', '', '\n'.join("{0} = {1}".format(k, v)
-                                                for k, v in sorted(d_flags.iteritems())), '',
-        '\n'.join("{0} = {1}".format(k, ' '.join(v)) for k, v in sorted(d_var.iteritems())), ''
-    ]
-
-    result += [
-        r'# Dark magic below modify with caution!', r'# "You are Not Expected to Understand This"',
-        r"#                     .", r"#           /^\     .", r'#      /\   "V",',
-        r"#     /__\   I      O  o", r"#    //..\\  I     .", r"#    \].`[/  I",
-        r"#    /l\/j\  (]    .  O", r"#   /. ~~ ,\/I          .", r"#   \\L__j^\/I       o",
-        r"#    \/--v}  I     o   .", r"#    |    |  I   _________", r"#    |    |  I c(`       ')o",
-        r"#    |    l  I   \.     ,/", r"#  _/j  L l\_!  _//^---^\\_", r""
-    ]
-
-    result += [
-        "", "ifeq ($(BUILD_SYSTEM),ninja)", "\tBUILD_FILE=IRPF90_temp/build.ninja",
-        "\tIRPF90FLAGS += -j", "else ifeq ($(BUILD_SYSTEM),make)",
-        "\tBUILD_FILE=IRPF90_temp/build.make", "\tBUILD_SYSTEM += -j", "else", "DUMMY:",
-        "\t$(error 'Wrong BUILD_SYSTEM: $(BUILD_SYSTEM)')", "endif"
-    ]
-
-    result += [
-        "", "define run_and_touch",
-        "        $(BUILD_SYSTEM) -C $(dir $(1) ) -f $(notdir $(1) ) $(addprefix $(CURDIR)/, $(2)) && touch $(2)",
-        "endef", "", "EXE := $(shell egrep -ri '^\s*program' *.irp.f | cut -d'.' -f1)", "",
-        ".PHONY: all", "", "all: $(BUILD_FILE)", "\t$(call run_and_touch, $<, $(EXE))", "",
-        ".NOTPARALLEL: $(EXE)", "$(EXE): $(BUILD_FILE)", "\t$(call run_and_touch, $<, $(EXE))",
-        "$(BUILD_FILE): $(shell find .  -maxdepth 2 -path ./IRPF90_temp -prune -o -name '*.irp.f' -print)",
-        "\t$(IRPF90) $(IRPF90FLAGS)", "", "clean:", '\trm -f -- $(BUILD_FILE) $(EXE)'
-        '\t$(shell find IRPF90_temp -type f \\( -name "*.o" -o -name "*.mod" -name "*.a" \\)  -delete;)',
-        "veryclean: clean", "\trm -rf IRPF90_temp/ IRPF90_man/ irpf90_entities dist tags"
-    ]
-
+    d.update(d_flags)
+    d.update(d_var)
+    
     import util
-    data = '%s\n' % '\n'.join(result)
-    util.lazy_write_file('Makefile', data, conservative=True)
+    str_ = util.ashes_env.render('general.make', d)
+    util.lazy_write_file('Makefile', str_, conservative=True)
 
 
 def create_make_all_clean(l_main):

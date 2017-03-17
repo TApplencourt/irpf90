@@ -1,22 +1,22 @@
-IRPF90= ../bin/irpf90
-IRPF90FLAGS=  
+IRPF90= irpf90
+IRPF90FLAGS= {irpf90_flags}
 # Make | Ninja
-BUILD_SYSTEM= make
+BUILD_SYSTEM= {BUILD_SYSTEM}
 
 .EXPORT_ALL_VARIABLES:
 
-LIB = 
-SRC = 
-OBJ = 
+LIB = {LIB}
+SRC = {SRC}
+OBJ = {OBJ}
 
 # Compiler ! Will be overwriten by the ENV one if avalaible.
-FC ?= gfortran-6
-FCFLAGS ?= -O2
+FC ?= {FC}
+FCFLAGS ?= {FCFLAGS}
 
-CC ?= gcc
-CFLAGS ?= -O2 
-CXX ?= g++
-CXXFLAGS ?= -O2
+CC ?= {CC}
+CFLAGS ?= {CFLAGS} 
+CXX ?= {CXX}
+CXXFLAGS ?= {CXXFLAGS}
 
 # Dark magic below modify with caution!
 # "You are Not Expected to Understand This"
@@ -36,8 +36,8 @@ CXXFLAGS ?= -O2
 #  _/j  L l\_!  _//
 
 #Misc
-AR ?= 
-RANLIB ?= 
+AR ?= {ar}
+RANLIB ?= {ranlib}
 
 # Variable need by IRPF90
 ifeq ($(BUILD_SYSTEM),ninja)
