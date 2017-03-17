@@ -1,5 +1,5 @@
 IRPF90= ../bin/irpf90
-IRPF90FLAGS=  
+IRPF90FLAGS=  -I input/
 # Make | Ninja
 BUILD_SYSTEM= make
 
@@ -53,17 +53,23 @@ endif
 
 # Actual Rule
 EXE := $(shell egrep -ri '^\s*program' *.irp.f | cut -d'.' -f1)
+ARCH = $(addprefix $(CURDIR)/,IRPF90_temp/irpf90.a)
 
 .PHONY: clean all
 
 all: $(EXE)
 
-$(EXE): $(BUILD_FILE)
+$(EXE): $(ARCH)
 	@printf "%b" "\033[0;32m Build $@...\033[m\n"
-	@$(BUILD_SYSTEM) -C $(dir $< ) -f $(notdir $< ) $(addprefix $(CURDIR)/, $@) && touch $@
+	@$(BUILD_SYSTEM) -C $(dir $< ) -f $(notdir $(BUILD_FILE)) $(addprefix $(CURDIR)/, $@) && touch $@
 
 
-.NOTPARALLEL: $(BUILD_FILE)
+.NOTPARALLEL: $(BUILD_FILE) $(ARCH)
+
+$(ARCH): $(BUILD_FILE)
+	@printf "%b" "\033[0;32m Creating the archive...\033[m\n"
+	@$(BUILD_SYSTEM) -C $(dir $< ) -f $(notdir $< ) $(ARCH)
+
 $(BUILD_FILE): $(shell find .  -maxdepth 2 -path ./IRPF90_temp -prune -o -name '*.irp.f' -print)
 	@printf "%b" "\033[0;32m Running the IRPF90-compiler...\033[m\n"
 	@$(IRPF90) $(IRPF90FLAGS)
