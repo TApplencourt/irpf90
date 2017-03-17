@@ -85,9 +85,9 @@ subroutine irp_enter(irp_where)
  nthread = 1
  """
      txt += """
-   print *, 'Allocating irp_stack(',STACKMAX,',',0:nthread,')'
-   print *, 'Allocating irp_cpu(',STACKMAX,',',0:nthread,')'
-   print *, 'Allocating stack_index(',0:nthread,')'
+   print *, 'Allocating irp_stack(' , STACKMAX , ',0:', nthread, ')'
+   print *, 'Allocating irp_cpu(' , STACKMAX , ',0:', nthread , ')'
+   print *, 'Allocating stack_index(0:', nthread, ')'
  endif"""
   txt +="""
 $2
@@ -128,9 +128,9 @@ $1
   nthread = 1
 """
     txt +="""
-  print *, 'Allocating irp_stack(',STACKMAX,',',0:nthread,')'
-  print *, 'Allocating irp_cpu(',STACKMAX,',',0:nthread,')'
-  print *, 'Allocating stack_index(',0:nthread,')'
+  print *, 'Allocating irp_stack(',STACKMAX,',0:',nthread,')'
+  print *, 'Allocating irp_cpu(',STACKMAX,',0:',nthread,')'
+  print *, 'Allocating stack_index(0:',nthread,')'
  endif
 """
   txt += """
@@ -197,9 +197,9 @@ end subroutine
  irp_stack(stack_index(1),1) = irp_where"""
     if do_memory:
       txt+="""
-  print *, 'Allocating irp_stack(',STACKMAX,','0:nthread,')'
-  print *, 'Allocating irp_cpu(',STACKMAX,','0:nthread,')'
-  print *, 'Allocating stack_index(',0:nthread,')'"""
+  print *, 'Allocating irp_stack(',STACKMAX,'0:',nthread,')'
+  print *, 'Allocating irp_cpu(',STACKMAX,'0:',nthread,')'
+  print *, 'Allocating stack_index(0:',nthread,')'"""
   else:
     s = ""
   txt = txt.replace("$1",s)

@@ -91,6 +91,9 @@ def main():
     if not command_line.do_run:
         return
 
+    import irp_stack
+    irp_stack.create()
+
     comm_world.create_buildfile(command_line.do_ninja)
     comm_world.write_modules()
    

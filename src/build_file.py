@@ -319,7 +319,6 @@ def create_makefile(d_flags,d_var,irpf90_flags,ninja=True):
               "\tIRPF90FLAGS += -j",
               "else ifeq ($(BUILD_SYSTEM),make)",
               "\tBUILD_FILE=IRPF90_temp/build.make",
-              "\tBUILD_SYSTEM += -j",
               "else",
               "DUMMY:",
               "\t$(error 'Wrong BUILD_SYSTEM: $(BUILD_SYSTEM)')",
