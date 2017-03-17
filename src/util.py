@@ -82,12 +82,12 @@ def parmap(f, it, parallel=False):
     # https://docs.python.org/2/library/pickle.html#what-can-be-pickled-and-unpickled
     #from cPickle import PicklingError
     #try:
-    #         p = multiprocessing.Pool(nproc)
-    #           l_res = p.map(f, it,nproc)
+    #    p = multiprocessing.Pool(nproc)
+    #    l_res = p.map(f, it,nproc)
     #except PicklingError:
-    #        pass        
+    #   pass    
     #else:
-    #        return l_res
+    #   return l_res
 
     # ~!~!~!
     # Parallelisation By Us
@@ -127,8 +127,8 @@ def parmap(f, it, parallel=False):
                 result = F(x)
             except BaseException as e:
                 t = e
-            else:        
-                   t = (i, result)
+            else:       
+                t = (i, result)
 
             q_out.put(t)
             q_in.task_done()
@@ -162,8 +162,8 @@ def parmap(f, it, parallel=False):
         from itertools import ifilter
         e = next(ifilter(lambda t: isinstance(t,BaseException), l_res))
     except StopIteration:
-           # Now we need first to order the result, and secondly to flatte it
-            return [item for _, chunk in sorted(l_res) for item in chunk]
+        # Now we need first to order the result, and secondly to flatte it
+        return [item for _, chunk in sorted(l_res) for item in chunk]
     else:
         raise e
 

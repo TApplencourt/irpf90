@@ -59,8 +59,8 @@ def main():
 
         print 'graph { '
         for name,entity in comm_world.d_entity.items():
-            if entity.needs:
-               print '   {0} -> {1}'.format(name, ' '.join(entity.needs))
+                if entity.needs:
+                        print '   {0} -> {1}'.format(name, ' '.join(entity.needs))
         print '}'
         return
 

@@ -208,7 +208,7 @@ def move_to_top_list(text, it):
         - We can have `nested` subroutine / Function. (Because of interface)
         - This function is called way to much. Is need to be efficient
                       - This function is Impure
-                           - One pass over `text`
+                      - One pass over `text`
 
 
    NB:
@@ -231,7 +231,7 @@ def move_to_top_list(text, it):
 
     for i, (l_var, line) in enumerate(text):
         t = type(line)
-        
+
         if t in [Begin_provider, Module,Program, Subroutine, Function]:
             l_begin.append(i)
         elif t in [End_provider, End]:
@@ -240,7 +240,7 @@ def move_to_top_list(text, it):
         elif l_begin and t in it:
             d_permutation[t].append( (l_begin[-1], [l_var, line]) )
             # Put the sentinel, will be deleted after the insertion
-            text[i] = None        
+            text[i] = None
 
     # ~ # ~ # ~
     # O r d e r  t h e m
@@ -276,7 +276,7 @@ def move_interface(parsed_text,s_type=(Use,Implicit,Declaration,Subroutine,Funct
         = This function is impure
    '''
 
-   # Get the born of the interface        
+   # Get the born of the interface      
    i_begin =  [ i   for i, (_,  line) in enumerate(parsed_text) if isinstance(line,Interface)  ]
    i_end   =  [ i+1 for i, (_, line) in  enumerate(parsed_text) if isinstance(line,End_interface) ]
 
@@ -290,7 +290,7 @@ def move_interface(parsed_text,s_type=(Use,Implicit,Declaration,Subroutine,Funct
                 parsed_text[insert:insert]  = parsed_text[begin:end]
 
                 padding = end-begin
-                parsed_text[begin+padding:end+padding] = []        
+                parsed_text[begin+padding:end+padding] = []
 
 ######################################################################
 def build_sub_needs(parsed_text, d_subroutine):
@@ -298,7 +298,7 @@ def build_sub_needs(parsed_text, d_subroutine):
     '''Set the needs, and provides arguements of Routine present in parsed_text
     
     Note:
-        This function is impure        
+        This function is impure
     '''
 
     l_buffer = []
@@ -352,7 +352,7 @@ def move_variables(parsed_text):
             for vars, line in revtext:
                 if type(line) in [Interface, End_interface]:
                         skip_interface = not skip_interface
-                
+
                 if skip_interface:
                         append(([], line))
                         continue

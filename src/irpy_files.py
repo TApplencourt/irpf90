@@ -45,20 +45,20 @@ class Irpy_comm_world(object):
         s_file_folder = filter(lambda f: os.path.isfile(f) and not f.startswith("."), s_file_folder_all)
 
 
-         
+
 
         s_file_tot = set(l_file) if l_file else set() 
         s_file_tot.update(s_file_folder)
-        
+
         s_file_rel = set(os.path.relpath(f,self.cwd) for f in s_file_tot)
 
         # Lazy Copy file
         for f in s_file_rel:
-             src = os.path.join(self.cwd,f)        
+             src = os.path.join(self.cwd,f)
              text_ref = open(src, 'rb').read()
 
              dest = os.path.join(self.cwd,irpf90_t.irpdir, f)
-             lazy_write_file(dest, text_ref)                
+             lazy_write_file(dest, text_ref)
 
         if command_line.do_codelet:
                 s_file_tot.update(command_line.codelet[3])
@@ -134,7 +134,7 @@ class Irpy_comm_world(object):
         #
         # Modify parameter of variables
 
-        # Touch Softouch        
+        # Touch Softouch
         def find_variable(line):
             l_var = line.lower.split()[1:]
             if len(l_var) < 1:
@@ -238,8 +238,8 @@ class Irpy_comm_world(object):
         from irpf90_t import NoDep,Declaration,Implicit,Use,Cont_provider
         def moved_to_top_l(ptext):
                  l = [NoDep, Declaration, Implicit, Use, Cont_provider]
-                  for _, text in ptext:
-                              parsed_text.move_to_top_list(text, l)
+                 for _, text in ptext:
+                        parsed_text.move_to_top_list(text, l)
 
         #Touch routine
         parsed_text.build_sub_needs(parsed_text_0, d_routine)
@@ -318,5 +318,5 @@ class Irpy_comm_world(object):
           out += [ "end subroutine", "" ]
 
           filename = os.path.join(irpf90_t.irpdir,'irp_locks.irp.F90')
-            lazy_write_file(filename, '\n'.join(out))
+          lazy_write_file(filename, '\n'.join(out))
 

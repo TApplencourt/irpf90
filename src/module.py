@@ -144,8 +144,8 @@ class Fmodule(object):
                         continue
 
 
-                if type(line) in [Subroutine, Function, Program]:                
-                    #Deep copy...        
+                if type(line) in [Subroutine, Function, Program]:
+                    #Deep copy...
                     variable_list = list(vars)
                 elif type(line) == End:
                     result += [([], Use(line.i, x, line.filename)) for x in build_use(variable_list, self.d_all_variable)]
@@ -163,7 +163,7 @@ class Fmodule(object):
             result,dec,use,module = [],[],[],[]
 
             for vars, line in text:
-                
+
                 if isinstance(line, (Subroutine, Function, Program,Interface,Module)):
                     inside += 1
 
@@ -177,7 +177,7 @@ class Fmodule(object):
                         use.append((vars, line))
                     elif type(line) == Declaration:
                         dec.append((vars, line))
-                        
+
 
                 if isinstance(line,(End,End_interface,End_module)):
                     inside += -1
@@ -208,10 +208,10 @@ class Fmodule(object):
     @irpy.lazy_property
     def dec(self):
         '''The declaration of this module
-        
+
         Note:
                 Because user can define F90 Type, we need to keep the correct order.
-        
+
         Warning:
                 If we uniquify that can cause a problem with the type in guess.
                 ```type toto

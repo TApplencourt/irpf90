@@ -152,7 +152,7 @@ def get_type(i, filename, line, line_lower, line_lower_canonized, is_doc):
     reg_do_lab = ur":\s+do\s+"
     if re.search(reg_do_lab,line_lower):
         return [Do(i,line,filename)], is_doc
-           
+        
 
     lower_line = line_lower.strip()[1:]
 
@@ -445,7 +445,7 @@ def remove_comments(text, form):
                     text = remove_after_bang(line.text)
                     if text:
                         line.text = text 
-                            result.append(line)
+                        result.append(line)
 
         return result
     else:
@@ -769,7 +769,7 @@ def process_old_style_do(text):
 ######################################################################
 def change_single_line_ifs(text):
     # List[Line] -> List[Line]
-    '''Changes:        `if (test) result`
+    '''Changes: `if (test) result`
         into
                 `if (test) then
                     result
@@ -853,7 +853,7 @@ def check_begin_end(raw_text):
  
           if n_end > n_begin:
             logger.error("You have more close statement than open statement (%s) (%s)",line.filename,t_end)
-            else:
+          else:
             logger.error('You have more end statement than open statenemt for (%s)  (%s)' %  (line.filename, t_end))
           
           for i in zip([l for i in l_begin for l in d_type[i]], d_type[t_end]):
@@ -913,7 +913,7 @@ class Preprocess_text(object):
             str_ = f.read()
         
         #Dirty thing. We will replace 'end program' by 'end subroutine'
-        #because afterward the program will be replaced by a subroutine...        
+        #because afterward the program will be replaced by a subroutine...      
 
         import re
         transform = re.compile(re.escape('end program'), re.IGNORECASE)

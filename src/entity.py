@@ -90,7 +90,7 @@ class Entity(object):
     @irpy.lazy_property
     def d_type_lines(self):
         # () -> Dict[Line, Tuple[int,Line] ]
-          '''Contruct a mapping table between the type of the line and the possition'''
+        '''Contruct a mapping table between the type of the line and the possition'''
         from collections import defaultdict
         d = defaultdict(list)
         for i, line in enumerate(self.text):
@@ -105,11 +105,11 @@ class Entity(object):
     def is_main(self):
         # () -> bool
         '''Check if this Entity is the main one
-        
+
         Exemple:
                 BEGIN_PROVIDER [pi, double precision] &
                 BEGIN_PROVIDER [e, double preision]
-        
+
                 return True for 'pi' and False for 'e'
         '''
         return self.name == self.same_as
@@ -337,8 +337,8 @@ class Entity(object):
         type_ = self.prototype.text.split(',')[0].split('[')[1].strip()
 
         if not type_:
-            logger.error( "Error in definition of %s." % (self.name))         
-                  sys.exit(1)
+            logger.error( "Error in definition of %s." % (self.name))
+            sys.exit(1)
 
         if self.dim:
             return "%s, allocatable" % (type_)
@@ -627,7 +627,7 @@ class Entity(object):
         # Get the raw text for the builder
         # ~#~#~#~#~#
 
-        #Next return the first element of the iterator        
+        #Next return the first element of the iterator
         ps_text = next(text for filename, text in self.cm_t_filename_parsed_text
                        if self.prototype.filename[0].startswith(filename))
         begin = next(i for i, (_, line) in enumerate(ps_text)
