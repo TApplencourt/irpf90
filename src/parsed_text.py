@@ -207,7 +207,7 @@ def move_to_top_list(text, it):
         - The permutation neeed to be done following `it` order
         - We can have `nested` subroutine / Function. (Because of interface)
         - This function is called way to much. Is need to be efficient
-                      - This function is Unpure
+                      - This function is Impure
                            - One pass over `text`
 
 
@@ -273,7 +273,7 @@ def move_interface(parsed_text,s_type=(Use,Implicit,Declaration,Subroutine,Funct
    '''Move everything containt into 'interface' below the first instance of s_type who preced it
 
    Note:
-        = This function is unpur
+        = This function is impure
    '''
 
    # Get the born of the interface        
@@ -298,7 +298,7 @@ def build_sub_needs(parsed_text, d_subroutine):
     '''Set the needs, and provides arguements of Routine present in parsed_text
     
     Note:
-        This function is unpure        
+        This function is impure        
     '''
 
     l_buffer = []

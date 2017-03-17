@@ -407,7 +407,7 @@ def remove_comments(text, form):
     '''Remove all comments
 
     Note:
-        This function is unpur
+        This function is impure
     '''
     result = []
 
