@@ -59,16 +59,20 @@ ARCH = $(addprefix $(CURDIR)/,IRPF90_temp/irpf90.a)
 
 all: $(EXE)
 
+define run
+	$(BUILD_SYSTEM) -C $(dir $(BUILD_FILE) ) -f $(notdir $(BUILD_FILE) ) $(1)
+endef
+
 $(EXE): $(ARCH)
 	@printf "%b" "\033[0;32m Build $@...\033[m\n"
-	@$(BUILD_SYSTEM) -C $(dir $< ) -f $(notdir $(BUILD_FILE)) $(addprefix $(CURDIR)/, $@) && touch $@
+	@$(call run, $(addprefix $(CURDIR)/, $@)) && touch $@
 
 
 .NOTPARALLEL: $(BUILD_FILE) $(ARCH)
 
 $(ARCH): $(BUILD_FILE)
 	@printf "%b" "\033[0;32m Creating the archive...\033[m\n"
-	@$(BUILD_SYSTEM) -C $(dir $< ) -f $(notdir $< ) $(ARCH)
+	@$(call run, $@) && touch $@
 
 $(BUILD_FILE): $(shell find .  -maxdepth 2 -path ./IRPF90_temp -prune -o -name '*.irp.f' -print)
 	@printf "%b" "\033[0;32m Running the IRPF90-compiler...\033[m\n"
