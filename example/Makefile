@@ -1,4 +1,4 @@
-IRPF90= ../bin/irpf90
+IRPF90= ../bin/irpf90 -d
 IRPF90FLAGS=  -I input/
 # Make | Ninja
 BUILD_SYSTEM= make

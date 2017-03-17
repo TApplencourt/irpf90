@@ -34,7 +34,8 @@ SUBROUTINE provide_{name}
    {/l_entity}
 
    CALL bld_{name}
- 
+   {name}_is_built = .TRUE.
+
  {?do_openmp}
  ENDIF
  CALL irp_lock_{name}(.FALSE.)
