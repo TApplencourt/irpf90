@@ -1,5 +1,5 @@
-IRPF90= irpf90
-IRPF90FLAGS=  -I ./ -I input/
+IRPF90= ../bin/irpf90
+IRPF90FLAGS=  
 BUILD_SYSTEM= make
 
 .EXPORT_ALL_VARIABLES:
@@ -50,7 +50,7 @@ define run_and_touch
         $(BUILD_SYSTEM) -C $(dir $(1) ) -f $(notdir $(1) ) $(addprefix $(CURDIR)/, $(2)) && touch $(2)
 endef
 
-EXE := $(shell egrep -r '^\s*program' *.irp.f |  awk '{print $$2}')
+EXE := $(shell egrep -ri '^\s*program' *.irp.f | cut -d'.' -f1)
 
 .PHONY: all
 

@@ -178,17 +178,19 @@ class Entity(object):
             'group_entity': [{
                 'name': n,
                 'dim': build_dim(
-                    self.cm_d_variable[n].dim, colons=True)
+                    self.d_entity[n].dim, colons=True)
             } for n in self.l_name]
         }
 
-        return ashes_env('io.f90', d_template).split('\n')
+        return ashes_env.render('ioer.f90', d_template).split('!TOKEN_SPLIT')
 
+    @irpy.lazy_property
     def reader(self):
-        return io.er.split('TOKEN_SPLIT')[0]
+        return self.io_er[1].split('\n')
 
+    @irpy.lazy_property
     def writer(self):
-        return io.er.split('TOKEN_SPLIT')[1]
+        return self.io_er[0].split('\n')
 
     @irpy.lazy_property_mutable
     def is_read(self):

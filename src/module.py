@@ -114,7 +114,6 @@ class Fmodule(object):
                 result += var.reader
             if var.is_written:
                 result += var.writer
-
         return result
 
     @irpy.lazy_property

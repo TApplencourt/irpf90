@@ -1,4 +1,4 @@
-SUBROUTINE write_{name}(irp_num)
+SUBROUTINE writer_{name}(irp_num)
 
     USE {fmodule} 
     IMPLICIT NONE
@@ -17,28 +17,28 @@ SUBROUTINE write_{name}(irp_num)
          CALL provide_{same_as}
     ENDIF
 
-    {children}
-    CALL write_{.}(irp_num)
+    {#children}
+    CALL writer_{.}(irp_num)
     {/children}
 
     DO WHILE (irp_is_open)
-          irp_iunit = irp_inuit + 1
-          INQUIRE(UNIT=irp_inuit, OPENED=irp_is_open)
+          irp_iunit = irp_iunit + 1
+          INQUIRE(UNIT=irp_iunit, OPENED=irp_is_open)
     END DO
 
     {#group_entity}
-       OPEN(UNIT=irp_inuit,file='irpf90_{name}_'//trim(irp_num),FROM='FORMATTED',STATUS='UNKNOWN',ACTION='WRITE')
-       WRITE(irp_inuit,*) {.}{dim}
-       CLOSE(irp_inuit)
+       OPEN(UNIT=irp_iunit,file='irpf90_{name}_'//trim(irp_num),FORM='FORMATTED',STATUS='UNKNOWN',ACTION='WRITE')
+       WRITE(irp_iunit,*) {name}{dim}
+       CLOSE(irp_iunit)
     {/group_entity}
 
    {?do_debug} CALL irp_leave(irp_here) {/do_debug}
 
-END SUBROUTINE write_{name}
+END SUBROUTINE writer_{name}
 
 !TOKEN_SPLIT
 
-SUBROUTINE read_{name}(irp_num)
+SUBROUTINE reader_{name}(irp_num)
 
     USE {fmodule}
     IMPLICIT NONE
@@ -54,18 +54,18 @@ SUBROUTINE read_{name}(irp_num)
    {?do_debug} CALL irp_enter(irp_here) {/do_debug}
 
     DO WHILE (irp_is_open)
-          irp_iunit = irp_inuit + 1
-          INQUIRE(UNIT=irp_inuit, OPENED=irp_is_open)
+          irp_iunit = irp_iunit + 1
+          INQUIRE(UNIT=irp_iunit, OPENED=irp_is_open)
     END DO
 
     {#group_entity}
-       OPEN(UNIT=irp_inuit,file='irpf90_{name}_'//trim(irp_num),FROM='FORMATTED',STATUS='UNKNOWN',ACTION='WRITE')
-       READ(irp_inuit,*) {name}{dim}
-       CLOSE(irp_inuit)
+       OPEN(UNIT=irp_iunit,file='irpf90_{name}_'//trim(irp_num),FORM='FORMATTED',STATUS='UNKNOWN',ACTION='WRITE')
+       READ(irp_iunit,*) {name}{dim}
+       CLOSE(irp_iunit)
     {/group_entity}
    
    CALL touch_{name}
    {?do_debug} CALL irp_leave(irp_here) {/do_debug}
 
-END SUBROUTINE read_{name}
+END SUBROUTINE reader_{name}
 
