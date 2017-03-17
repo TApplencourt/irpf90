@@ -82,15 +82,15 @@ class Routine(object):
   ############################################################
   @irpy.lazy_property
   def touches_my_self(self):
-	return set(x for line in self.text for x in line.text.split()[1:] if isinstance(line,(Touch, SoftTouch)))
+        return set(x for line in self.text for x in line.text.split()[1:] if isinstance(line,(Touch, SoftTouch)))
 
   @irpy.lazy_property_mutable
   def touches_ancestor(self):
-	raise AttributeError
+        raise AttributeError
 
   @irpy.lazy_property
   def touches(self):
-	return list(self.touches_my_self.union(self.touches_ancestor))
+        return list(self.touches_my_self.union(self.touches_ancestor))
 
   ############################################################
   @irpy.lazy_property

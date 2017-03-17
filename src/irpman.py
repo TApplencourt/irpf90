@@ -29,12 +29,12 @@ import os
 import sys
 
 if __name__ == "__main__":
-	from irpf90_t import mandir
-	entity = sys.argv[1].lower()
-	
-	filename = '%s.l'% entity
-	if filename not in os.listdir(mandir):
-	   print "Error: `%s` does not exist"% entity
-	   sys.exit(-1)
+        from irpf90_t import mandir
+        entity = sys.argv[1].lower()
 
-	os.system("man %s" % os.path.join(mandir,filename))
+        filename = '%s.l'% entity
+        if filename not in os.listdir(mandir):
+           print "Error: `%s` does not exist"% entity
+           sys.exit(-1)
+
+        os.system("man %s" % os.path.join(mandir,filename))

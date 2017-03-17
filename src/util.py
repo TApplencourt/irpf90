@@ -60,13 +60,13 @@ def parmap(f, it, parallel=False):
     '''Parallel version of the std map function
     
     The parallel flag is set to togle the // execusion
-	
+        
     Note:
-	- We try to use the Mulprocesses map is possible else we use our own
-	- The order of the sequence if concerved
+        - We try to use the Mulprocesses map is possible else we use our own
+        - The order of the sequence if concerved
         - Will use all the processesor possible
-	- We return a List
-	- The traceback is loose if an error occur but a Exception is raise.
+        - We return a List
+        - The traceback is loose if an error occur but a Exception is raise.
     '''
 
     if not parallel:
@@ -82,12 +82,12 @@ def parmap(f, it, parallel=False):
     # https://docs.python.org/2/library/pickle.html#what-can-be-pickled-and-unpickled
     #from cPickle import PicklingError
     #try:
-    #	 p = multiprocessing.Pool(nproc)
-    #  	 l_res = p.map(f, it,nproc)
+    #    p = multiprocessing.Pool(nproc)
+    #    l_res = p.map(f, it,nproc)
     #except PicklingError:
-    #	pass	
+    #   pass    
     #else:
-    #	return l_res
+    #   return l_res
 
     # ~!~!~!
     # Parallelisation By Us
@@ -103,7 +103,7 @@ def parmap(f, it, parallel=False):
         # (List[any]) -> (List[any])
         '''Same as 'f' but for a chunck'''
         return map(f,chunk)
-	
+        
 
     q_in = multiprocessing.JoinableQueue()
     q_out = multiprocessing.Queue()
@@ -116,21 +116,21 @@ def parmap(f, it, parallel=False):
        '''Read a task from q_in, excute it, and store it in q_out
 
        Note:
-	  - We use 'F' and not 'f'. 
-	  - The for loop will break when stop_contition occur
-	  - We get, and put an idx to allow the possibility of ordering afterward
-	  - We store any exeception, to raise her afterward
+          - We use 'F' and not 'f'. 
+          - The for loop will break when stop_contition occur
+          - We get, and put an idx to allow the possibility of ordering afterward
+          - We store any exeception, to raise her afterward
        '''
        for i, x in iter(q_in.get, stop_condition):
 
-	    try:
-		result = F(x)
-	    except BaseException as e:
-		t = e
-            else:	
-	   	t = (i, result)
+            try:
+                result = F(x)
+            except BaseException as e:
+                t = e
+            else:       
+                t = (i, result)
 
-	    q_out.put(t)
+            q_out.put(t)
             q_in.task_done()
 
        q_in.task_done()
@@ -143,7 +143,7 @@ def parmap(f, it, parallel=False):
 
     # Add the job to the queue (Note we add an idx, this will all)
     for i, x in enumerate(it_chunk):
-	q_in.put((i, x))
+        q_in.put((i, x))
 
     # Now add the stop contidion and join
     # (Because q_in.get is blocking we don't need to join the queue before)
@@ -159,13 +159,13 @@ def parmap(f, it, parallel=False):
     
     # Check if error have occured  
     try:
-	from itertools import ifilter
-	e = next(ifilter(lambda t: isinstance(t,BaseException), l_res))
+        from itertools import ifilter
+        e = next(ifilter(lambda t: isinstance(t,BaseException), l_res))
     except StopIteration:
-   	# Now we need first to order the result, and secondly to flatte it
-    	return [item for _, chunk in sorted(l_res) for item in chunk]
+        # Now we need first to order the result, and secondly to flatte it
+        return [item for _, chunk in sorted(l_res) for item in chunk]
     else:
-	raise e
+        raise e
 
 # ~#~#~#~#~#
 #  I O  _  R E L A T E D
@@ -177,16 +177,16 @@ def cached_file(filename, text):
     '''Check if file locatte at filename containt the same data as text
 
     Return:
-	True if data is the same, false otherwise
+        True if data is the same, false otherwise
     '''
 
     def digest(data):
-	# (str) -> str
-	'''compute an uniq data id'''
-	return  hashlib.md5(data).hexdigest()
+        # (str) -> str
+        '''compute an uniq data id'''
+        return  hashlib.md5(data).hexdigest()
 
     try:
-	text_ref = open(filename, 'rb').read()
+        text_ref = open(filename, 'rb').read()
     except IOError:
         return False
     else:
@@ -198,14 +198,14 @@ def lazy_write_file(filename, text, conservative=False,touch=False):
     '''Write data lazily in filename location.
 
     Note:
-	If convervative is set, we don't overwrite.
+        If convervative is set, we don't overwrite.
     '''
 
     if not os.path.exists(filename) or not cached_file(filename, text) and not conservative:
         with open(filename, 'w') as f:
             f.write(text)
     elif touch:
-	os.utime(filename,None)
+        os.utime(filename,None)
 
 def listdir(directory, abspath=False):
     #(str, bool) -> List[str]
@@ -246,9 +246,9 @@ def uniquify(l,sort=False):
     '''Uniquify a immutable iterable. Don't preserve the order'''
     r = list(set(l))
     if not sort:
-	return r
+        return r
     else:
-	return sorted(r)
+        return sorted(r)
 
 def OrderedUniqueList(l):
     # (Iter, bool) -> List[Any]
@@ -260,7 +260,7 @@ def flatten(l_2d):
     '''Construct a copy of the 2d list collapsed into one dimension.
 
     Note:
-	-  We collapse in a C-style fashion (row_major).
+        -  We collapse in a C-style fashion (row_major).
     '''
 
     return [item for l_1d in l_2d for item in l_1d]
@@ -274,9 +274,9 @@ def build_dim(l_dim, colons=False):
     '''Contruct a valid fortran90 array dimension code from a list dimension
 
     Exemple:
-	[4,8] -> (4,8) if not colons
-	[4,8] -> (:,:) if colons
-	
+        [4,8] -> (4,8) if not colons
+        [4,8] -> (:,:) if colons
+        
     '''
     if not l_dim:
         return ""

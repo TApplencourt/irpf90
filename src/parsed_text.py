@@ -205,15 +205,15 @@ def move_to_top_list(text, it):
 
     Note:
         - The permutation neeed to be done following `it` order
-	- We can have `nested` subroutine / Function. (Because of interface)
-	- This function is called way to much. Is need to be efficient
-                      - This function is Unpure
-     		      - One pass over `text`
+        - We can have `nested` subroutine / Function. (Because of interface)
+        - This function is called way to much. Is need to be efficient
+                      - This function is Impure
+                      - One pass over `text`
 
 
    NB:
-	- I am not really proud of the Sentinel value for the deleted,
-	  but I waste already so much time on more cleaver but not working solution...
+        - I am not really proud of the Sentinel value for the deleted,
+          but I waste already so much time on more cleaver but not working solution...
    '''
 
     assert set(it).issubset([NoDep, Declaration, Implicit, Use, Cont_provider])
@@ -231,16 +231,16 @@ def move_to_top_list(text, it):
 
     for i, (l_var, line) in enumerate(text):
         t = type(line)
-	
+
         if t in [Begin_provider, Module,Program, Subroutine, Function]:
             l_begin.append(i)
         elif t in [End_provider, End]:
-	    l_begin.pop()
+            l_begin.pop()
 
         elif l_begin and t in it:
             d_permutation[t].append( (l_begin[-1], [l_var, line]) )
-	    # Put the sentinel, will be deleted after the insertion
-	    text[i] = None	
+            # Put the sentinel, will be deleted after the insertion
+            text[i] = None
 
     # ~ # ~ # ~
     # O r d e r  t h e m
@@ -264,8 +264,8 @@ def move_to_top_list(text, it):
 
     # Now do the Delete part of the move. Fortunatly we put a sentinel to know the line to delete
     for i in reversed(xrange(len(text))):
-	if text[i] is None:
-		del text[i]
+        if text[i] is None:
+                del text[i]
 
 
 def move_interface(parsed_text,s_type=(Use,Implicit,Declaration,Subroutine,Function,Module)):
@@ -273,24 +273,24 @@ def move_interface(parsed_text,s_type=(Use,Implicit,Declaration,Subroutine,Funct
    '''Move everything containt into 'interface' below the first instance of s_type who preced it
 
    Note:
-	= This function is unpur
+        = This function is impure
    '''
 
-   # Get the born of the interface	
+   # Get the born of the interface      
    i_begin =  [ i   for i, (_,  line) in enumerate(parsed_text) if isinstance(line,Interface)  ]
    i_end   =  [ i+1 for i, (_, line) in  enumerate(parsed_text) if isinstance(line,End_interface) ]
 
    # Get the begin of the insert
    i_insert = [] 
    for begin in i_begin:
-	i_insert.append(next(i+1 for i in range(begin,-1,-1) if isinstance(parsed_text[i][1], s_type)))
+        i_insert.append(next(i+1 for i in range(begin,-1,-1) if isinstance(parsed_text[i][1], s_type)))
 
     # Do the insert and the delete in one passe
    for insert, begin, end in zip(i_insert,i_begin,i_end):
-		parsed_text[insert:insert]  = parsed_text[begin:end]
+                parsed_text[insert:insert]  = parsed_text[begin:end]
 
-		padding = end-begin
-		parsed_text[begin+padding:end+padding] = []	
+                padding = end-begin
+                parsed_text[begin+padding:end+padding] = []
 
 ######################################################################
 def build_sub_needs(parsed_text, d_subroutine):
@@ -298,7 +298,7 @@ def build_sub_needs(parsed_text, d_subroutine):
     '''Set the needs, and provides arguements of Routine present in parsed_text
     
     Note:
-	This function is unpure	
+        This function is impure
     '''
 
     l_buffer = []
@@ -347,15 +347,15 @@ def move_variables(parsed_text):
         revtext = list(text)
         revtext.reverse()
   
-	skip_interface = False
+        skip_interface = False
         try:
             for vars, line in revtext:
-		if type(line) in [Interface, End_interface]:
-			skip_interface = not skip_interface
-		
-		if skip_interface:
-			append(([], line))
-			continue
+                if type(line) in [Interface, End_interface]:
+                        skip_interface = not skip_interface
+
+                if skip_interface:
+                        append(([], line))
+                        continue
 
                 if type(line) in [End_provider, End]:
                     varlist = []
@@ -399,10 +399,10 @@ def move_variables(parsed_text):
                     varlist += vars
                     append(([], line))
         except:
-	    from util import logger
+            from util import logger
             logger.error("Unable to parse file %s", line)
-	    import sys
-	    sys.exit(1)
+            import sys
+            sys.exit(1)
 
         result.reverse()
 
