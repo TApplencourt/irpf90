@@ -600,7 +600,7 @@ class Entity(object):
         ]
         if command_line.do_openmp:
             result.append(" call irp_lock_%s(.True.)" % (same_as))
-        if command_line.do_assert or command_line.do_debug:
+        if command_line.do_debug:
             result.append("  call irp_enter(irp_here)")
         result += build_call_provide(self.to_provide, self.d_entity)
         result += flatten(map(build_alloc, [self.same_as] + self.others_entity_name))
@@ -609,7 +609,7 @@ class Entity(object):
             "  %s_is_built = .True." % (same_as), ""
         ]
         result += [" endif"]
-        if command_line.do_assert or command_line.do_debug:
+        if command_line.do_debug:
             result.append("  call irp_leave(irp_here)")
         if command_line.do_openmp:
             result.append(" call irp_lock_%s(.False.)" % (same_as))

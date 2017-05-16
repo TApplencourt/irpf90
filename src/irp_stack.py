@@ -159,7 +159,7 @@ end subroutine
 """
 
   # $1
-  if do_assert or do_debug:
+  if do_debug:
     s = """
  if (.not.alloc) then
  """
@@ -168,6 +168,9 @@ end subroutine
  !$OMP PARALLEL
  !$OMP SINGLE
  nthread = omp_get_num_threads()
+ if (nthread>1) then
+   stop 'irpf90 -debug does not work in multithread'
+ endif
  !$OMP END SINGLE
  !$OMP END PARALLEL
  !$OMP CRITICAL
@@ -223,7 +226,7 @@ end subroutine
     txt = txt.replace("$3","")
 
   # $4
-  if do_debug or do_assert:
+  if do_debug:
     txt = txt.replace("$4","""
   stack_index(ithread) = max(0,stack_index(ithread)-1)""")
   else:

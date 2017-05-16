@@ -476,7 +476,7 @@ def run(d_module, ninja):
     l_irp_sup_o = ["irp_touches.irp.o"]
     l_irp_sup_s = ["irp_touches.irp.F90"]
 
-    if command_line.do_assert:
+    if command_line.do_debug:
         l_irp_sup_o += ["irp_stack.irp.o"]
         l_irp_sup_s += ["irp_stack.irp.F90"]
 

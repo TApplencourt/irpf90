@@ -544,7 +544,7 @@ def irp_simple_statements(text):
 
     def process_return(line):
         assert type(line) == Return
-        if command_line.do_assert or command_line.do_debug:
+        if command_line.do_debug:
             newline = Simple_line(line.i, " call irp_leave(irp_here)", line.filename)
             result = [newline, line]
         else:
@@ -585,7 +585,6 @@ def irp_simple_statements(text):
                 Empty_line(i, "!", f),
                 Empty_line(i, "! >>> %s" % (txt, ), f),
                 If(i, "  if (.not.%s) then" % (condition, ), f),
-                Simple_line(i, "   call irp_trace", f),
                 Simple_line(i, "   print *, irp_here//': Assert failed:'", f),
                 Simple_line(i, "   print *, ' file: %s, line: %d'" % (f, i), f),
                 Simple_line(i, "   print *, '%s'" % (condition_str, ), f),
@@ -600,7 +599,7 @@ def irp_simple_statements(text):
     def process_end(line):
         '''Add irp_leave if necessary'''
 
-        if command_line.do_assert or command_line.do_debug:
+        if command_line.do_debug:
             i = line.i
             f = line.filename
             result = [Simple_line(i, " call irp_leave(irp_here)", f), line]
@@ -624,7 +623,7 @@ def irp_simple_statements(text):
             Begin_provider(i, line.text, (f, varname)),
             Declaration(i, "  character*(%d) :: irp_here = '%s'" % (length, varname), f)
         ]
-        if command_line.do_assert or command_line.do_debug:
+        if command_line.do_debug:
             result += [Simple_line(i, "  call irp_enter(irp_here)", f), ]
         return result
 
@@ -646,7 +645,7 @@ def irp_simple_statements(text):
         f = line.filename
         result = [ line, Declaration(i, "  character*(%d) :: irp_here = '%s'" % (length, subname), f)]
 
-        if command_line.do_assert or command_line.do_debug:
+        if command_line.do_debug:
             result += [Simple_line(i, "  call irp_enter_f(irp_here)", f), ]
         return result
 
@@ -659,7 +658,7 @@ def irp_simple_statements(text):
         result = [
             line, Declaration(i, "  character*(%d) :: irp_here = '%s'" % (length, subname), f)
         ]
-        if command_line.do_assert or command_line.do_debug:
+        if command_line.do_debug:
             result += [Simple_line(i, "  call irp_enter_f(irp_here)", f), ]
         return result
 
