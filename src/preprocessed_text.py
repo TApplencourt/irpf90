@@ -785,7 +785,7 @@ def change_single_line_ifs(text):
                 buffer = line.text
                 begin = buffer.find('(')
                 if begin == -1:
-                        logger.error("No '(' in if statemnt: %s" % line)
+                        logger.error("No '(' in if statement: %s" % line)
                         sys.exit(1)
 
                 level = 0
@@ -826,7 +826,7 @@ def check_begin_end(raw_text):
 
     Note:
       fortran 'ifdef' statement may cause this function to bug.
-      Indeed we count the numboer of 'x' statement and compare it to the number of 'endx'.
+      Indeed we count the numboer of 'x' statements and compare it to the number of 'endx'.
       Maybe more of one 'x' statement in defined cause in 'ifdef/else/endif' statement.
     '''
 
@@ -851,9 +851,9 @@ def check_begin_end(raw_text):
         if n_end != n_begin:
  
           if n_end > n_begin:
-            logger.error("You have more close statement than open statement (%s) (%s)",line.filename,t_end)
+            logger.error("You have more close statements than open statements (%s) (%s)",line.filename,t_end)
           else:
-            logger.error('You have more end statement than open statenemt for (%s)  (%s)' %  (line.filename, t_end))
+            logger.error('You have more end statements than open statements for (%s)  (%s)' %  (line.filename, t_end))
           
           for i in zip([l for i in l_begin for l in d_type[i]], d_type[t_end]):
                 logger.debug(i)
