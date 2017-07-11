@@ -413,9 +413,13 @@ def run(d_module, ninja):
         l_irp_sup_o += ["irp_locks.irp.o"]
         l_irp_sup_s += ["irp_locks.irp.F90"]
 
+    if command_line.do_profile or command_line.do_codelet:
+        l_irp_sup_o += ["irp_rdtsc.o"]
+        l_irp_sup_s += ["irp_rdtsc.c"]
+
     if command_line.do_profile:
-        l_irp_sup_o += ["irp_profile.irp.o", "irp_rdtsc.o"]
-        l_irp_sup_s += ["irp_profile.irp.F90", "irp_rdtsc.c"]
+        l_irp_sup_o += ["irp_profile.irp.o"]
+        l_irp_sup_s += ["irp_profile.irp.F90"]
 
     l_irp_sup_o = map(dress, l_irp_sup_o)
     l_irp_sup_s = map(dress, l_irp_sup_s)

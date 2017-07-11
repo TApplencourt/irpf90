@@ -1,7 +1,12 @@
+# make | ninja
+##############
+
+BUILD_SYSTEM= {BUILD_SYSTEM}
+
+#######
+
 IRPF90= irpf90
 IRPF90FLAGS= {irpf90_flags}
-# Make | Ninja
-BUILD_SYSTEM= {BUILD_SYSTEM}
 
 .EXPORT_ALL_VARIABLES:
 
@@ -33,17 +38,18 @@ CXXFLAGS ?= {CXXFLAGS}
 #    |    |  I   _________
 #    |    |  I c(`       ')o
 #    |    l  I   \.     ,/
-#  _/j  L l\_!  _//
+#  _/j  L l\_!  _//     \\_
 
 #Misc
 AR ?= {ar}
 RANLIB ?= {ranlib}
 
 # Variable need by IRPF90
-ifeq ($(BUILD_SYSTEM),ninja)
+BUILD_SYSTEM_stripped=$(strip $(BUILD_SYSTEM))
+ifeq ($(BUILD_SYSTEM_stripped),ninja)
         BUILD_FILE=IRPF90_temp/build.ninja
         IRPF90FLAGS += -j
-else ifeq ($(BUILD_SYSTEM),make)
+else ifeq ($(BUILD_SYSTEM_stripped),make)
         BUILD_FILE=IRPF90_temp/build.make
         BUILD_SYSTEM += -j
 else
@@ -60,7 +66,7 @@ ARCH = $(addprefix $(CURDIR)/,IRPF90_temp/irpf90.a)
 all: $(EXE)
 
 define run
-	$(BUILD_SYSTEM) -C $(dir $(BUILD_FILE) ) -f $(notdir $(BUILD_FILE) ) $(1)
+	$(BUILD_SYSTEM_stripped) -C $(dir $(BUILD_FILE) ) -f $(notdir $(BUILD_FILE) ) $(1)
 endef
 
 #We allow for the user to ask for 'relative' path
