@@ -478,7 +478,7 @@ class Entity(object):
                 "  if (allocated(%s)) then"%(name),
                 "    deallocate (%s)"%(name)]
             if command_line.do_memory:
-                result += "    print *, 'Deallocating %s'"%(name)
+                result += [ "    print *, 'Deallocating %s'"%(name) ]
 
             result += ["  endif"]
 
@@ -552,7 +552,7 @@ class Entity(object):
                 if command_line.do_memory:
                     tmp = "\n   print *, %s, 'Allocating %s(%s)'"
                     d = ','.join(self.dim)
-                    result += tmp % ('size(' + name + ')', name, d)
+                    result += tmp % ('size(' + name + ')', name, d) 
                 return result
 
             result = [" if (allocated (%s) ) then" % (name)]
