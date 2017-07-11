@@ -27,8 +27,9 @@
 from entity import Entity
 from routine import Routine
 from irpf90_t import mandir
-from util import parmap, build_dim,lazy_write_file
+from util import parmap, build_dim, lazy_write_file
 import os
+
 
 def do_print_short(entity):
     assert type(entity) == Entity
@@ -56,7 +57,7 @@ def process_deps(l):
 def process_types(entity_input, d_entity):
     assert type(entity_input) == Entity
 
-    l_name = [entity_input.name] + entity_input.others_entity_name
+    l_name = entity_input.l_name
     l_entity = [d_entity[name] for name in l_name]
 
     l = [ "{0}\t:: {1}\t{2}".format(entity.type, name, build_dim(entity.dim) )
@@ -105,7 +106,6 @@ def do_print(entity, d_entity):
     l_data.append(".br")
     str_ = '\n'.join(l_data)
     lazy_write_file("%s%s.l" % (mandir, name), '%s\n' % str_)
-
 
 
 ######################################################################
@@ -164,8 +164,8 @@ def run(d_entity, d_routine):
 
     l_subs = d_routine.values()
 
-    l_data_to_write = [("%s.l" % os.path.join(mandir, s.name), do_print_subroutines(s)) for s in l_subs]
-
+    l_data_to_write = [("%s.l" % os.path.join(mandir, s.name), do_print_subroutines(s))
+                       for s in l_subs]
 
     def worker(l):
         filename, text = l

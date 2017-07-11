@@ -34,7 +34,8 @@ regexps_re_string_sub = regexps.re_string.sub
 
 def find_variables_in_line(line, vtuple):
     line_lower = regexps_re_string_sub('', line.lower)
-    return [same_as for v, same_as, regexp in vtuple if v in line_lower and regexp(line_lower)]
+    #return [same_as for v,same_as, regexp in vtuple if v in line_lower and regexp(line_lower)]
+    return [v for v, same_as, regexp in vtuple if v in line_lower and regexp(line_lower)]
 
 
 def find_funcs_in_line(line, stuple):
@@ -56,16 +57,19 @@ def check_touch(variables, line, vars, main_vars):
         if main_var not in variables:
             error.fail(line, "Variable %s unknown" % (main_var, ))
         x = variables[main_var]
-        return [main_var] + x.others_entity_name
+        return [main_var] + x.l_others_name
 
     all_others = uniquify(flatten(map(fun, main_vars)))
     all_others.sort()
     vars.sort()
     for x, y in zip(vars, all_others):
         if x != y:
-            message = "The following entities should be touched:\n"
+            message = "The following entities should be touched:"
             message = "\n".join([message] + map(lambda x: "- %s" % (x, ), all_others))
-            error.fail(line, message)
+            from util import logger
+            logger.error("%s (%s)" % (message, line))
+            import sys
+            sys.exit(1)
 
 
 from collections import namedtuple
@@ -96,7 +100,8 @@ def get_parsed_text(filename, text, variables, subroutines, vtuple):
             varlist.append(v)
 
             variable_list = find_variables_in_line(line, vtuple)
-            variable_list.remove(variables[v].same_as)
+            variable_list.remove(v)
+            #	    variable_list.remove(variables[v].same_as)
 
             append(Parsed_text(variable_list, line))
 
@@ -109,7 +114,9 @@ def get_parsed_text(filename, text, variables, subroutines, vtuple):
             l = filter(lambda x: x not in varlist, l)
             for v in l:
                 if v not in variables:
-                    error.fail(line, "Variable %s is unknown" % (v))
+                    logger.error("Variable %s is unknown (%s)" % (v, line))
+                    import sys
+                    sys.exit(1)
 
             append(Parsed_text(l, Provide(line.i, "", line.filename)))
             append(Parsed_text(l, Simple_line(line.i, "!%s" % (line.text), line.filename)))
@@ -119,6 +126,8 @@ def get_parsed_text(filename, text, variables, subroutines, vtuple):
             for v in l:
                 if v not in variables:
                     error.fail(line, "Variable %s is unknown" % (v))
+                    sys.exit(1)
+
             l = map(lambda x: "-%s" % (x), l)
             append(Parsed_text(l, Simple_line(line.i, "!%s" % (line.text), line.filename)))
         elif type(line) in [Touch, SoftTouch]:
@@ -149,8 +158,9 @@ def get_parsed_text(filename, text, variables, subroutines, vtuple):
             def fun(x):
                 if x not in variables:
                     error.fail(line, "Variable %s unknown" % (x, ))
-                return Parsed_text(
-                    [], Simple_line(line.i, " %s_is_built = .True." % (x, ), line.filename))
+                return Parsed_text([],
+                                   Simple_line(line.i, " %s_is_built = .True." %
+                                               (x, ), line.filename))
 
             result += map(fun, main_vars[:-1])
             if type(line) == SoftTouch:
@@ -198,6 +208,7 @@ def get_parsed_text(filename, text, variables, subroutines, vtuple):
 
     return (filename, result)
 
+
 ######################################################################
 def move_to_top_list(text, it):
     # ( List[ List[Entity], Line], Iterator)
@@ -232,13 +243,13 @@ def move_to_top_list(text, it):
     for i, (l_var, line) in enumerate(text):
         t = type(line)
 
-        if t in [Begin_provider, Module,Program, Subroutine, Function]:
+        if t in [Begin_provider, Module, Program, Subroutine, Function]:
             l_begin.append(i)
         elif t in [End_provider, End]:
             l_begin.pop()
 
         elif l_begin and t in it:
-            d_permutation[t].append( (l_begin[-1], [l_var, line]) )
+            d_permutation[t].append((l_begin[-1], [l_var, line]))
             # Put the sentinel, will be deleted after the insertion
             text[i] = None
 
@@ -265,32 +276,34 @@ def move_to_top_list(text, it):
     # Now do the Delete part of the move. Fortunatly we put a sentinel to know the line to delete
     for i in reversed(xrange(len(text))):
         if text[i] is None:
-                del text[i]
+            del text[i]
 
 
-def move_interface(parsed_text,s_type=(Use,Implicit,Declaration,Subroutine,Function,Module)):
-   # ( List[ List[Entity], Line], Iterator)
-   '''Move everything containt into 'interface' below the first instance of s_type who preced it
+def move_interface(parsed_text, s_type=(Use, Implicit, Declaration, Subroutine, Function, Module)):
+    # ( List[ List[Entity], Line], Iterator)
+    '''Move everything containt into 'interface' below the first instance of s_type who preced it
 
    Note:
         = This function is impure
    '''
 
-   # Get the born of the interface      
-   i_begin =  [ i   for i, (_,  line) in enumerate(parsed_text) if isinstance(line,Interface)  ]
-   i_end   =  [ i+1 for i, (_, line) in  enumerate(parsed_text) if isinstance(line,End_interface) ]
+    # Get the born of the interface	
+    i_begin = [i for i, (_, line) in enumerate(parsed_text) if isinstance(line, Interface)]
+    i_end = [i + 1 for i, (_, line) in enumerate(parsed_text) if isinstance(line, End_interface)]
 
-   # Get the begin of the insert
-   i_insert = [] 
-   for begin in i_begin:
-        i_insert.append(next(i+1 for i in range(begin,-1,-1) if isinstance(parsed_text[i][1], s_type)))
+    # Get the begin of the insert
+    i_insert = []
+    for begin in i_begin:
+        i_insert.append(
+            next(i + 1 for i in range(begin, -1, -1) if isinstance(parsed_text[i][1], s_type)))
 
     # Do the insert and the delete in one passe
-   for insert, begin, end in zip(i_insert,i_begin,i_end):
-                parsed_text[insert:insert]  = parsed_text[begin:end]
+    for insert, begin, end in zip(i_insert, i_begin, i_end):
+        parsed_text[insert:insert] = parsed_text[begin:end]
 
-                padding = end-begin
-                parsed_text[begin+padding:end+padding] = []
+        padding = end - begin
+        parsed_text[begin + padding:end + padding] = []
+
 
 ######################################################################
 def build_sub_needs(parsed_text, d_subroutine):
@@ -303,10 +316,14 @@ def build_sub_needs(parsed_text, d_subroutine):
 
     l_buffer = []
     for _, text in parsed_text:
-        l_begin = [ i for i, (_, line) in enumerate(text) if isinstance(line, (Subroutine, Function, Program))]
+        l_begin = [
+            i for i, (_, line) in enumerate(text)
+            if isinstance(line, (Subroutine, Function, Program))
+        ]
         l_end = [i for i, (_, line) in enumerate(text) if isinstance(line, End)]
 
-        l_buffer += [(d_subroutine[text[b].line.subname], text[b + 1:e]) for b, e in zip(l_begin, l_end) if not isinstance(text[b].line, Program)]
+        l_buffer += [(d_subroutine[text[b].line.subname], text[b + 1:e])
+                     for b, e in zip(l_begin, l_end) if not isinstance(text[b].line, Program)]
 
     for sub, text in l_buffer:
         sub.needs = set(v for vs, _ in text for v in vs)
@@ -329,11 +346,59 @@ def add_subroutine_needs(parsed_text, subroutines):
 
 
 ######################################################################
+def raise_entity(text):
+    #(List[ Tuple[List[Entity], Tuple[int,List[Line]] ]]
+    '''Working progress'''
+    l_token = []
+    d_level_var = dict()
+    d_level_var[0] = []
+
+    skip_interface = False
+    lvl = 0
+
+    for i, (e, line) in enumerate(text):
+        type_ = type(line)
+
+        if type_ in [Interface, End_interface]:
+            skip_interface = not skip_interface
+
+        if skip_interface:
+            continue
+
+        if type_ in [Begin_provider, Program, Subroutine, Function, If]:
+            l_token.append(i)
+            lvl += 1
+            d_level_var[lvl] = e[:]
+
+        elif type_ in [End_provider, End, Endif]:
+            i = l_token.pop()
+            text[i] = (d_level_var[lvl], text[i][1])
+
+            lvl += -1
+
+        elif type_ in [Else, Elseif]:
+            i = l_token.pop()
+            text[i] = (d_level_var[lvl], text[i][1])
+
+            assert (type(text[i][1]) == If)
+
+            l_token.append(i)
+            d_level_var[lvl] = e[:]
+
+        else:
+            d_level_var[lvl] += e[:]
+            text[i] = ([], line)
+
+    assert (lvl == 0)
+
+
 def move_variables(parsed_text):
     #(List[ Tuple[List[Entity], Tuple[int,List[Line]] ]]
-    '''Move variables into the top of the declaraiton'''
+    '''Move variables into the top of the declaraiton.
 
-  
+   This need to be optimised to handle the fact that we can have multi-provider
+   '''
+
     def func(filename, text):
         result = []
         append = result.append
@@ -346,16 +411,16 @@ def move_variables(parsed_text):
         old_elsevars = []
         revtext = list(text)
         revtext.reverse()
-  
+
         skip_interface = False
         try:
             for vars, line in revtext:
                 if type(line) in [Interface, End_interface]:
-                        skip_interface = not skip_interface
+                    skip_interface = not skip_interface
 
                 if skip_interface:
-                        append(([], line))
-                        continue
+                    append(([], line))
+                    continue
 
                 if type(line) in [End_provider, End]:
                     varlist = []
@@ -406,6 +471,10 @@ def move_variables(parsed_text):
 
         result.reverse()
 
+        #print '@@@@@@@@@@@@@'
+        #for i in text:
+        #        print i
+
         # 2nd pass
         text = result
         result = []
@@ -447,7 +516,14 @@ def move_variables(parsed_text):
 
     main_result = []
     for filename, text in parsed_text:
+        #for i in text:
+        #        print i
         main_result.append((filename, func(filename, text)))
+
+        #print '==========='
+        #for i in main_result[-1][1]:
+        #        print i
+
     return main_result
 
 
@@ -459,6 +535,7 @@ def build_needs(parsed_text, subroutines, stuple, variables):
     # Needs and to_provide
     # ~#~#~#~#~#
 
+    # Loop of the main Entity
     for filename, text in parsed_text:
 
         l_begin = [i for i, (_, line) in enumerate(text) if isinstance(line, Begin_provider)]
@@ -485,6 +562,7 @@ def build_needs(parsed_text, subroutines, stuple, variables):
 
             entity.needs = uniquify(l_needs)
 
+    # Now do the Other entity
     for v in variables:
         main = variables[v].same_as
         if main != v:
@@ -492,25 +570,17 @@ def build_needs(parsed_text, subroutines, stuple, variables):
             variables[v].to_provide = variables[main].to_provide
 
     # ~#~#~#~#~#
-    # Needs and to_provide
+    # Needs_by
     # ~#~#~#~#~#
+    from collections import defaultdict
 
-    for v in variables:
-        variables[v].needed_by = []
-    for v in variables:
-        main = variables[v].same_as
-        if main != v:
-            variables[v].needed_by = variables[main].needed_by
+    d_needed_by = defaultdict(list)
+    for var in variables.values():
+        for x in var.needs:
+            d_needed_by[x].append(var.name)
 
-    for v in variables:
-        var = variables[v]
-        if var.is_main:
-            for x in var.needs:
-                variables[x].needed_by.append(var.same_as)
-
-    for v in variables:
-        var = variables[v]
-        var.needed_by = uniquify(var.needed_by)
+    for v in d_needed_by:
+        variables[v].needed_by = uniquify(d_needed_by[v])
 
 ######################################################################
 from command_line import command_line
@@ -549,4 +619,3 @@ def perform_loop_substitutions(parsed_text):
             append((vars, line))
         main_result.append((filename, result))
     return main_result
-

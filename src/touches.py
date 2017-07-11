@@ -24,42 +24,40 @@
 #   31062 Toulouse Cedex 4      
 #   scemama@irsamc.ups-tlse.fr
 
-from irpf90_t import irp_id,irpdir
+from irpf90_t import irp_id, irpdir
 import os
-from util import lazy_write_file
+from command_line import command_line
 
-def create(modules,variables):
-  # (Dict[str,Module]. Dict[str, Variable]) -> None
-  '''Create the fortran90 finalize subroutine and the touched one'''
 
-  
-  finalize = "subroutine irp_finalize_%s\n"%(irp_id)
-  for m in filter(lambda x: not modules[x].is_main and modules[x].has_irp_module, modules):
-      finalize += " use %s\n"%(modules[m].name)
+def create(modules, variables):
+    # (Dict[str,Module]. Dict[str, Variable]) -> None
+    '''Create the fortran90 finalize subroutine and the touched one'''
 
-  main_modules_name =[ m.name for m in modules.values() if m.is_main]
-  
-  out = []
-  for v,var in variables.iteritems():
+    main_modules_name = [m.name for m in modules.values() if m.is_main]
 
-    if var.fmodule not in main_modules_name:
-      #if var.is_self_touched:
-      out += var.toucher
-      if var.dim:
-        finalize += "  if (allocated(%s)) then\n"%v
-        finalize += "    %s_is_built = .False.\n"%var.same_as
-        finalize += "    deallocate(%s)\n"%v
-        finalize += "  endif\n"
+    d_template_finalize = {
+        'id': irp_id,
+        'use': [m.name for m in modules.values() if not m.is_main and m.has_irp_module],
+        'entity_array': [{
+            'name': e.name,
+            'name_root': e.same_as
+        } for e in variables.values() if e.fmodule not in main_modules_name and e.dim]
+    }
 
-  finalize += "end\n"
+    d_template_touch = {
+        'do_debug': command_line.do_debug,
+        'entity': [
+            e.d_touche_template for e in variables.values()
+            if e.fmodule not in main_modules_name and e.d_touche_template
+        ]
+    }
+    import util
+    str_out = util.ashes_env.render('touch.f90', d_template_touch) + util.ashes_env.render(
+        'finalize.f90', d_template_finalize)
 
-  if out:
-    out = map(lambda x: "%s\n"%(x),out)
+    filename = os.path.join(irpdir, 'irp_touches.irp.F90')
+    util.lazy_write_file(filename, '%s\n' % util.remove_empy_lines(str_out))
 
-  out += finalize
-
-  filename=os.path.join(irpdir,'irp_touches.irp.F90')
-  lazy_write_file(filename,''.join(out))
 
 if __name__ == '__main__':
-  create()
+    create()

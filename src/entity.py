@@ -28,10 +28,7 @@ from irpf90_t import *
 from util import *
 from command_line import command_line
 import sys
-try:
-    import irpy
-except:
-    import lib_irpy as irpy
+from lib.manager import irpy
 
 
 class Entity(object):
@@ -63,7 +60,6 @@ class Entity(object):
         self.name = name if name else self.same_as
 
         self.comm_world = comm_world
-
 
     # ~ # ~ # ~
     # G l o b a l   P r o p e r t y
@@ -97,7 +93,6 @@ class Entity(object):
             d[type(line)] += [(i, line)]
         return d
 
-
     # ~ # ~ # ~
     # M u l t i p l e   P r o v i d e r   H a n d l e r 
     # ~ # ~ # ~
@@ -105,15 +100,14 @@ class Entity(object):
     def is_main(self):
         # () -> bool
         '''Check if this Entity is the main one
-
-        Exemple:
-                BEGIN_PROVIDER [pi, double precision] &
+	
+	Exemple:
+		BEGIN_PROVIDER [pi, double precision] &
                 BEGIN_PROVIDER [e, double preision]
 
                 return True for 'pi' and False for 'e'
         '''
         return self.name == self.same_as
-
 
     @irpy.lazy_property
     def prototype(self):
@@ -128,21 +122,25 @@ class Entity(object):
         '''
 
         d = self.d_type_lines
-        return next(line for _,line in d[Begin_provider]+d[Cont_provider] if line.filename[1] == self.name)
-
+        return next(line for _, line in d[Begin_provider] + d[Cont_provider]
+                    if line.filename[1] == self.name)
 
     @irpy.lazy_property
-    def others_entity_name(self):
+    def l_name(self):
+        # () -> List[str]
+        d = self.d_type_lines
+        return [line.filename[1] for _, line in d[Begin_provider] + d[Cont_provider]]
+
+    @irpy.lazy_property
+    def l_others_name(self):
         # () -> List[str]
         '''Extract the other entity-name defined'''
-        d = self.d_type_lines
-        return [line.filename[1] for _,line in d[Begin_provider]+d[Cont_provider] if not line.filename[1] == self.name]
-
+        return [name for name in self.l_name if not name == self.name]
 
     @irpy.lazy_property
     def doc(self):
         # () -> List[str]
-        doc = [line.text.lstrip()[1:] for _,line in self.d_type_lines[Doc]]
+        doc = [line.text.lstrip()[1:] for _, line in self.d_type_lines[Doc]]
         if not doc:
             logger.warning("Entity '%s' is not documented" % (self.name))
         return doc
@@ -163,45 +161,36 @@ class Entity(object):
         return any(self.d_entity[i].is_written for i in self.parents)
 
     @irpy.lazy_property
-    def writer(self):
+    def io_er(self):
         if not self.is_main:
             result = []
-        else:
-            name = self.name
-            result = [ \
-            "subroutine writer_%s(irp_num)"%(name),
-            "  use %s"%(self.fmodule),
-            "  implicit none",
-            "  character*(*), intent(in) :: irp_num",
-            "  logical                   :: irp_is_open",
-            "  integer                   :: irp_iunit" ]
-            if command_line.do_debug:
-                length = len("writer_%s" % (self.name))
-                result += [\
-                "  character*(%d) :: irp_here = 'writer_%s'"%(length,name),
-                "  call irp_enter(irp_here)" ]
-            result += [ \
-            "  if (.not.%s_is_built) then"%(self.same_as),
-            "    call provide_%s"%(self.same_as),
-            "  endif" ]
-            result += map(lambda x: "  call writer_%s(irp_num)" % (x), self.needs)
-            result += [ \
-            "  irp_is_open = .True.",
-            "  irp_iunit = 9",
-            "  do while (irp_is_open)",
-            "   irp_iunit = irp_iunit+1",
-            "   inquire(unit=irp_iunit,opened=irp_is_open)",
-            "  enddo" ]
-            for n in [name] + self.others_entity_name:
-                result += [\
-                "  open(unit=irp_iunit,file='irpf90_%s_'//trim(irp_num),form='FORMATTED',status='UNKNOWN',action='WRITE')"%(n),
-                "  write(irp_iunit,*) %s%s"%(n,build_dim(self.d_entity[n].dim,colons=True)),
-                "  close(irp_iunit)" ]
-            if command_line.do_debug:
-                result.append("  call irp_leave(irp_here)")
-            result.append("end subroutine writer_%s" % (name))
-            result.append("")
-        return result
+
+        from util import mangled
+        from util import ashes_env
+        name = self.name
+
+        d_template = {
+            'name': name,
+            'fmodule': self.fmodule,
+            'same_as': self.same_as,
+            'do_debug': command_line.do_debug,
+            'children': mangled(self.needs, self.d_entity),
+            'group_entity': [{
+                'name': n,
+                'dim': build_dim(
+                    self.d_entity[n].dim, colons=True)
+            } for n in self.l_name]
+        }
+
+        return ashes_env.render('ioer.f90', d_template).split('!TOKEN_SPLIT')
+
+    @irpy.lazy_property
+    def reader(self):
+        return self.io_er[1].split('\n')
+
+    @irpy.lazy_property
+    def writer(self):
+        return self.io_er[0].split('\n')
 
     @irpy.lazy_property_mutable
     def is_read(self):
@@ -209,43 +198,8 @@ class Entity(object):
         return any(self.d_entity[i].is_read for i in self.parents)
 
     @irpy.lazy_property
-    def reader(self):
-        if not self.is_main:
-            result = []
-        else:
-            name = self.name
-            result = [ \
-            "subroutine reader_%s(irp_num)"%(name),
-            "  use %s"%(self.fmodule),
-            "  implicit none",
-            "  character*(*), intent(in) :: irp_num",
-            "  logical                   :: irp_is_open",
-            "  integer                   :: irp_iunit" ]
-            if command_line.do_debug:
-                length = len("reader_%s" % (self.name))
-                result += [\
-                "  character*(%d) :: irp_here = 'reader_%s'"%(length,name),
-                "  call irp_enter(irp_here)" ]
-            result += map(lambda x: "  call reader_%s(irp_num)" % (x), self.needs)
-            result += [ \
-            "  irp_is_open = .True.",
-            "  irp_iunit = 9",
-            "  do while (irp_is_open)",
-            "   inquire(unit=irp_iunit,opened=irp_is_open)",
-            "  enddo"]
-            for n in [name] + self.others:
-                result += [\
-                "  open(unit=irp_iunit,file='irpf90_%s_'//trim(irp_num),form='FORMATTED',status='OLD',action='READ')"%(n),
-                "  read(irp_iunit,*) %s%s"%(n,build_dim(self.cm_d_variable[n].dim,colons=True)),
-                "  close(irp_iunit)" ]
-            result += [ \
-            "  call touch_%s"%(name),
-            "  %s_is_built = .True."%(name) ]
-            if command_line.do_debug:
-                result.append("  call irp_leave(irp_here)")
-            result.append("end subroutine reader_%s" % (name))
-            result.append("")
-        return result
+    def is_source_touch(self):
+        return (Touch in self.d_type_lines or SoftTouch in self.d_type_lines)
 
     @irpy.lazy_property_mutable
     def is_self_touched(self):
@@ -257,7 +211,7 @@ class Entity(object):
         '''If any of the children is touched, the entity is touched'''
         if self.is_self_touched or any(self.d_entity[i].is_touched for i in self.children):
             return True
-            
+
         return False
 
     # ~ # ~ # ~
@@ -268,21 +222,21 @@ class Entity(object):
     def includes(self):
         # () -> str
         '''Extract the name of include who need be to be include in this Entity'''
-        return [line.filename for _,line in self.d_type_lines[Include]]
+        return [line.filename for _, line in self.d_type_lines[Include]]
 
     @irpy.lazy_property
     def uses(self):
-      '''Extract the name of module who are used in this Entity'''  
-      return [line.filename for _,line in self.d_type_lines[Use]]
+        '''Extract the name of module who are used in this Entity'''
+        return [line.filename for _, line in self.d_type_lines[Use]]
 
     @irpy.lazy_property
     def calls(self):
         '''Extract the name ofthe function called by the entity'''
 
         def extract_name(line):
-                return line.text.split('(', 1)[0].split()[1].lower()
+            return line.text.split('(', 1)[0].split()[1].lower()
 
-        return [extract_name(line) for _,line in self.d_type_lines[Call] ]
+        return [extract_name(line) for _, line in self.d_type_lines[Call]]
 
     # ~ # ~ # ~
     # Array Dimension
@@ -314,7 +268,6 @@ class Entity(object):
         else:
             return map(str.strip, x[1:-1].split(','))
 
-
     @irpy.lazy_property
     def allocate(self):
         # () -> List[Str]
@@ -323,11 +276,14 @@ class Entity(object):
             return []
         else:
             # We never go here
-            return [var for var in self.others_entity_name + [self.name] if self.d_entity[var].dim]
+            return [var for var in l_name if self.d_entity[var].dim]
 
     # ~ # ~ # ~
     # D e c l a r a t i o n
     # ~ # ~ # ~
+    @irpy.lazy_property
+    def is_protected(self):
+        return self.text[0].lower.startswith('begin_provider_immu')
 
     @irpy.lazy_property
     def type(self):
@@ -337,7 +293,7 @@ class Entity(object):
         type_ = self.prototype.text.split(',')[0].split('[')[1].strip()
 
         if not type_:
-            logger.error( "Error in definition of %s." % (self.name))
+            logger.error("Error in definition of %s." % (self.name))
             sys.exit(1)
 
         if self.dim:
@@ -346,29 +302,20 @@ class Entity(object):
             return type_
 
     @irpy.lazy_property
-    def header(self):
+    def d_header(self):
         # () -> List[str]
         '''Compute all the code needed to inistanticant the entity'''
 
-
-        name = self.name
-        str_ = "  {type_} :: {name} {dim}".format(type_=self.type, name=name, dim=build_dim(self.dim, colons=True))
-
-        if command_line.coarray:
-            if not self.dim:
-                str_ += " [*]"
-            else:
-                str_ += " [:]"
-
-        l = [str_]
-        if self.dim and command_line.align != '1':
-            l += ["  !DIR$ ATTRIBUTES ALIGN: %s :: %s" % (command_line.align, name)]
-
-        if self.is_main:
-            l += ["  logical :: %s_is_built = .False." % (name)]
-
-        return l
-
+        import util
+        d_template = {
+            'name': self.name,
+            'type': self.type,
+            'main': self.is_main,
+            'dim': build_dim(
+                self.dim, colons=True),
+            'protected': '\n'.join(self.allocater + self.builder) if self.is_protected else False
+        }
+        return d_template
 
     ############################################################
     @irpy.lazy_property
@@ -391,94 +338,38 @@ class Entity(object):
     # ~ # ~ # ~
 
     @irpy.lazy_property
-    def toucher(self):
+    def d_touche_template(self):
         # () -> List[str]
         '''Fabric the f90 routine who handle the cache invalidation'''
 
         # Only one by EntityColleciton
         if not self.is_main:
-            return []
+            return {}
 
-        parents = self.parents
-        name = self.name
+        from util import mangled
 
-        result = ["subroutine touch_%s" % (name)]
-
-        result += build_use(parents+[name],self.d_entity)
-        result.append("  implicit none")
-
-        if command_line.do_debug:
-            length = str(len("touch_%s" % (name)))
-            result += ["  character*(%s) :: irp_here = 'touch_%s'" % (length, name)]
-            result += ["  call irp_enter(irp_here)"]
-
-        result += map(lambda x: "  %s_is_built = .False." % (x), parents)
-        result.append("  %s_is_built = .True." % (name))
-
-        if command_line.do_debug:
-            result.append("  call irp_leave(irp_here)")
-
-        result.append("end subroutine touch_%s" % (name))
-        result.append("")
-
-        return result
+        return {
+            'name': self.name,
+            'l_module':
+            [n for n in build_use(
+                self.parents + [self.name], self.d_entity, use=False)],
+            'l_ancestor': [n for n in mangled(self.parents, self.d_entity)]
+        }
 
     ##########################################################
-    @irpy.lazy_property
-    def locker(self):
-            if not command_line.do_openmp:
-               return []
 
-            name = self.name
-            result = ["subroutine irp_lock_%s(set)" % (name)]
-            result += [
-                "  use omp_lib",
-                "  implicit none",
-                "  logical, intent(in) :: set",
-                "  integer(kind=omp_nest_lock_kind),save :: %s_lock" % (name),
-                "  integer,save :: ifirst",
-            ]
-            if command_line.do_debug:
-                length = str(len("irp_lock_%s" % (name)))
-                result += [
-                    "  character*(%s) :: irp_here = 'irp_lock_%s'" % (length, name),
-                    "  call irp_enter(irp_here)"
-                ]
-
-            result += [
-                "  if (ifirst == 0) then",
-                "    ifirst = 1",
-                "    call omp_init_nest_lock(%s_lock)" % (name),
-                "  endif",
-                "  if (set) then",
-                "    call omp_set_nest_lock(%s_lock)" % (name),
-                "  else",
-                "    call omp_unset_nest_lock(%s_lock)" % (name),
-                "  endif",
-            ]
-            if command_line.do_debug:
-                result.append("  call irp_leave(irp_here)")
-            result.append("end subroutine irp_lock_%s" % (name))
-            result.append("")
-            return result
-
-    ##########################################################
     @irpy.lazy_property
     def free(self):
         # () -> List[ str ]
         '''Compute an part of a subroutine used to free a variable'''
 
         name = self.name
-        result = ["!", 
-                  "! >>> FREE %s" % (name), 
-                  "  %s_is_built = .False." % (self.same_as)]
+        result = ["!", "! >>> FREE %s" % (name), "  %s_is_built = .False." % (self.same_as)]
 
         if self.dim:
-            result += [
-                "  if (allocated(%s)) then"%(name),
-                "    deallocate (%s)"%(name)]
+            result += ["  if (allocated(%s)) then" % (name), "    deallocate (%s)" % (name)]
             if command_line.do_memory:
-                result += "    print *, 'Deallocating %s'"%(name)
+                result += "    print *, 'Deallocating %s'" % (name)
 
             result += ["  endif"]
 
@@ -494,130 +385,56 @@ class Entity(object):
         if not self.is_main:
             return []
 
+        from util import mangled
+
+        import util
         name = self.name
-        same_as = self.same_as
+        l_module = [x for x in build_use([self.name] + self.to_provide, self.d_entity, use=False)]
+        l_children = [x for x in mangled(self.to_provide, self.d_entity)]
 
-        def dimsize(x):
-            # (str) -> str
-            '''Compute the number of element in the array'''
-            try:
-                b0, b1 = x.split(':')
-            except ValueError:
-                return x
+        l_entity = [self.d_entity[n] for n in self.l_name]
 
-            b0_is_digit =  b0.replace('-', '').isdigit()
-            b1_is_digit =  b1.replace('-', '').isdigit() 
-           
+        l = ashes_env.render('provider.f90', {
+            'name': name,
+            'l_module': l_module,
+            'l_children_static': l_children,
+            'do_debug': command_line.do_debug,
+            'do_openmp': command_line.do_openmp,
+            'do_task': command_line.do_Task,
+            'do_corray': command_line.do_coarray,
+            'dim': ','.join(self.dim),
+            'l_entity': [{
+                'name': i.name,
+                'dim': ','.join(i.dim)
+            } for i in l_entity]
+        })
+        return [i for i in l.split('\n') if i.strip()]
 
-            if b0_is_digit and b1_is_digit:
-                size = str(int(b1) - int(b0) + 1)
-            elif b0_is_digit:
-                    size = "(%s) - (%d)" % (b1, int(b0) - 1)
-            elif b1_is_digit:
-                    size = "(%d) - (%s)" % (int(b1) + 1, b0)
-            else:
-                    size = "(%s) - (%s) + 1" % (b1, b0)
+    @irpy.lazy_property
+    def allocater(self):
+        from util import mangled
 
-            return size
+        import util
+        name = self.name
+        l_module = [x for x in build_use([self.name] + self.to_provide, self.d_entity, use=False)]
+        if self.is_protected:
+            l_module.remove(self.fmodule)
 
-        def build_alloc(name):
+        l_dim = [{'name': name, 'rank': i + 1, 'value': dimsize(k)} for i, k in enumerate(self.dim)]
 
-            var = self.d_entity[name]
-            if var.dim == []:
-                return []
+        l = ashes_env.render('allocater.f90', {
+            'name': name,
+            'l_module': l_module,
+            'do_debug': command_line.do_debug,
+            'do_corray': command_line.do_coarray,
+            'do_memory': command_line.do_memory,
+            'dim': ','.join(self.dim),
+            'l_dim': l_dim
+        })
+        return [i for i in l.split('\n') if i.strip()]
 
-            from util import build_dim
+##########################################################
 
-            def print_size():
-                return " " * 5 + "print *, ' size: {0}'".format(build_dim(var.dim))
-
-            def check_dimensions():
-                l = ["(%s>0)" % dimsize(x) for x in var.dim]
-                str_ = ".and.".join(l)
-                return "   if (%s) then" % (str_)
-
-            def dimensions_OK():
-                result = ["  irp_dimensions_OK = .True."]
-                for i, k in enumerate(var.dim):
-                    result.append("  irp_dimensions_OK = irp_dimensions_OK.AND.(SIZE(%s,%d)==(%s))"
-                                  % (name, i + 1, dimsize(k)))
-                return result
-
-            def do_allocate():
-                if command_line.coarray:
-                    result = "    allocate(%s(%s)[*],stat=irp_err)"
-                else:
-                    result = "    allocate(%s(%s),stat=irp_err)"
-                result = result % (name, ','.join(var.dim))
-                if command_line.do_memory:
-                    tmp = "\n   print *, %s, 'Allocating %s(%s)'"
-                    d = ','.join(self.dim)
-                    result += tmp % ('size(' + name + ')', name, d)
-                return result
-
-            result = [" if (allocated (%s) ) then" % (name)]
-            result += dimensions_OK()
-            result += [
-                "  if (.not.irp_dimensions_OK) then", "   deallocate(%s,stat=irp_err)" % (name),
-                "   if (irp_err /= 0) then", "     print *, irp_here//': Deallocation failed: %s'" %
-                (name), print_size(), "   endif"
-            ]
-
-            if command_line.do_memory:
-                result += ["   print *, 'Deallocating %s'" % (name)]
-            result.append(check_dimensions())
-            result.append(do_allocate())
-            result += [\
-              "    if (irp_err /= 0) then",
-              "     print *, irp_here//': Allocation failed: %s'"%(name),
-              print_size(),
-              "    endif",
-              "   endif",
-              "  endif",
-              " else" ]
-            result.append(check_dimensions())
-            result.append(do_allocate())
-            result += [
-                "    if (irp_err /= 0) then", "     print *, irp_here//': Allocation failed: %s'" %
-                (name), print_size(), "    endif", "   endif", " endif"
-            ]
-            return result
-
-        result = []
-        if command_line.directives and command_line.inline in ["all", "providers"]:
-            result += ["!DEC$ ATTRIBUTES FORCEINLINE :: provide_%s" % (name)]
-        result += ["subroutine provide_%s" % (name)]
-        result += build_use([same_as] + self.to_provide, self.d_entity)
-        if command_line.do_openmp:
-            result += [" use omp_lib"]
-        result.append("  implicit none")
-        length = len("provide_%s" % (name))
-        result += [
-            "  character*(%d) :: irp_here = 'provide_%s'" % (length, name),
-            "  integer                   :: irp_err ",
-            "  logical                   :: irp_dimensions_OK",
-            "!$ integer                  :: nthreads"
-        ]
-        if command_line.do_openmp:
-            result.append(" call irp_lock_%s(.True.)" % (same_as))
-        if command_line.do_assert or command_line.do_debug:
-            result.append("  call irp_enter(irp_here)")
-        result += build_call_provide(self.to_provide, self.d_entity)
-        result += flatten(map(build_alloc, [self.same_as] + self.others_entity_name))
-        result += [
-            " if (.not.%s_is_built) then" % (same_as), "  call bld_%s" % (same_as),
-            "  %s_is_built = .True." % (same_as), ""
-        ]
-        result += [" endif"]
-        if command_line.do_assert or command_line.do_debug:
-            result.append("  call irp_leave(irp_here)")
-        if command_line.do_openmp:
-            result.append(" call irp_lock_%s(.False.)" % (same_as))
-        result.append("end subroutine provide_%s" % (name))
-        result.append("")
-        return result
-
-    ##########################################################
     @irpy.lazy_property
     def builder(self):
         if not self.is_main:
@@ -651,6 +468,7 @@ class Entity(object):
                                          line_prototype.filename)))
 
         for vars, line in ps_text[begin + 1:end]:
+
             text.append((vars, line))
             text += map(lambda x: ([], Simple_line(line.i, x, line.filename)),
                         build_call_provide(vars, self.d_entity))
@@ -665,13 +483,19 @@ class Entity(object):
 
         # Add the use statement
         result += ["subroutine bld_%s" % (self.name)]
-        result += build_use([self.name] + self.needs, self.d_entity)
+
+        l_use = build_use([self.name] + self.needs, self.d_entity, use=False)
+        if self.is_protected:
+            l_use.remove(self.fmodule)
+
+        result += ['USE %s' % n for n in l_use]
 
         import parsed_text
         # Move the variable to top, and add the text
         parsed_text.move_to_top_list(text, [Declaration, Implicit, Use])
 
-        result.extend( line.text for _,line in text if not isinstance(line, (Begin_doc, End_doc, Doc, Cont_provider)))
+        result.extend(line.text for _, line in text
+                      if not isinstance(line, (Begin_doc, End_doc, Doc, Cont_provider)))
 
         if command_line.do_profile:
             result += [
@@ -688,6 +512,11 @@ class Entity(object):
     def needs(self):
         #Set by parsed_text.build_needs(...)
         raise AttributeError
+
+    @irpy.lazy_property_mutable
+    def needed_by(self):
+        #Set by parsed_text.build_needs(...)
+        return []
 
     @irpy.lazy_property
     def children(self):
@@ -708,16 +537,10 @@ class Entity(object):
     ##########################################################
     @irpy.lazy_property
     def parents(self):
-        if not self.is_main:
-            return []
-
         result = []
         for x in self.needed_by:
             result.append(x)
-            try:
-                result += self.d_entity[x].parents
-            except RuntimeError:
-                pass  # Exception will be checked after
+            result += self.d_entity[x].parents
 
         result = OrderedUniqueList(result)
         if self.name in result:

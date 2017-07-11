@@ -24,7 +24,6 @@
 #   31062 Toulouse Cedex 4      
 #   scemama@irsamc.ups-tlse.fr
 
-
 irpdir = "IRPF90_temp/"
 mandir = "IRPF90_man/"
 
@@ -32,10 +31,8 @@ from zlib import crc32
 import os
 irp_id = abs(crc32(os.getcwd()))
 
-try:
-  import irpy
-except:
-  import lib_irpy as irpy
+from lib.manager import irpy
+from util import logger
 
 
 class Line(object):
@@ -51,36 +48,36 @@ class Line(object):
     def __repr__(self):
         return "%20s:%5d : %s (%s)" % (type(self).__name__, self.i, self.text, self.filename)
 
+
 class LineWithName(Line):
+    @irpy.lazy_property
+    def subname(self):
+        buf = self.lower
+        if not buf.endswith(')'):
+            buf += "()"
 
-  @irpy.lazy_property
-  def subname(self):
-       buf = self.lower
-       if not buf.endswith(')'):
-         buf += "()"
+        l_buf = buf.split('(')
+        l_name = l_buf[0].split()
 
-       l_buf = buf.split('(')
-       l_name = l_buf[0].split()
+        if len(l_name) < 2:
+            import loger
+            logger.error("Syntax Error: %s" % line)
+            sys.exit(1)
+        return l_name.pop()
 
-       if len(l_name) < 2:
-                import loger 
-                logger.error("Syntax Error: %s" % line)
-                sys.exit(1)
-       return l_name.pop()
 
 l_type = [
-    'Empty_line', 'Simple_line', "Declaration", "Continue", "Begin_provider",
-    "Cont_provider", "End_provider", "Begin_doc", "Doc", "End_doc",
-    "Begin_shell", "End_shell", "Begin_template", "End_template", "Subst",
-    "Assert", "Touch", "SoftTouch", "Irp_read", "Irp_write", "Irp_If",
-    "Irp_Else", "Irp_Endif", "Openmp", "Directive", "Use", "Do", "Enddo", "If",
-    "Elseif", "Else", "Endif", "Select", "Case", "End_select", "Provide", "NoDep", "Return", "Include",
-    "Implicit", "Free", "End", "Provide_all","Contains",'Type','End_module','Interface','End_interface',
-    'Where','Elsewhere','Endwhere']
+    'Empty_line', 'Simple_line', "Declaration", "Continue", "Begin_provider", "Cont_provider",
+    "End_provider", "Begin_doc", "Doc", "End_doc", "Begin_shell", "End_shell", "Begin_template",
+    "End_template", "Subst", "Assert", "Touch", "SoftTouch", "Irp_read", "Irp_write", "Irp_If",
+    "Irp_Else", "Irp_Endif", "Openmp", "Directive", "Use", "Do", "Enddo", "If", "Elseif", "Else",
+    "Endif", "Select", "Case", "End_select", "Provide", "NoDep", "Return", "Include", "Implicit",
+    "Free", "End", "Provide_all", "Contains", 'Type', 'End_module', 'Interface', 'End_interface',
+    'Where', 'Elsewhere', 'Endwhere'
+]
 
 for t in l_type:
     globals()[t] = type(t, (Line, ), {})
 
-for t in ['Subroutine', 'Function', 'Program',  'Call','Module']:
-     globals()[t] = type(t, (LineWithName, ), {}) 
-
+for t in ['Subroutine', 'Function', 'Program', 'Call', 'Module']:
+    globals()[t] = type(t, (LineWithName, ), {})

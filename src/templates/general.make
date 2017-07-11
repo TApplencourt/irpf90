@@ -1,27 +1,27 @@
 # make | ninja
 ##############
 
-BUILD_SYSTEM= ninja
+BUILD_SYSTEM= {BUILD_SYSTEM}
 
 #######
 
-IRPF90= ../bin/irpf90 
-IRPF90FLAGS=  -I input --codelet=v:100
+IRPF90= irpf90
+IRPF90FLAGS= {irpf90_flags}
 
 .EXPORT_ALL_VARIABLES:
 
-LIB = 
-SRC = 
-OBJ = 
+LIB = {LIB}
+SRC = {SRC}
+OBJ = {OBJ}
 
 # Compiler ! Will be overwriten by the ENV one if avalaible.
-FC =ifort 
-FCFLAGS ?= -O2 
+FC ?= {FC}
+FCFLAGS ?= {FCFLAGS}
 
-CC ?= gcc
-CFLAGS ?= -O2 
-CXX ?= g++
-CXXFLAGS ?= -O2
+CC ?= {CC}
+CFLAGS ?= {CFLAGS} 
+CXX ?= {CXX}
+CXXFLAGS ?= {CXXFLAGS}
 
 # Dark magic below modify with caution!
 # "You are Not Expected to Understand This"
@@ -41,8 +41,8 @@ CXXFLAGS ?= -O2
 #  _/j  L l\_!  _//     \\_
 
 #Misc
-AR ?= 
-RANLIB ?= 
+AR ?= {ar}
+RANLIB ?= {ranlib}
 
 # Variable need by IRPF90
 BUILD_SYSTEM_stripped=$(strip $(BUILD_SYSTEM))

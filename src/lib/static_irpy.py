@@ -1,4 +1,5 @@
-#Handle the execution stack
+#!/usr/bin/python
+
 from collections import defaultdict
 d_path = defaultdict(list)
 d_last_caller = defaultdict(lambda: None)

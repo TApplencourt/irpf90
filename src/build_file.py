@@ -36,6 +36,7 @@ irp_id = irpf90_t.irp_id
 
 cwd = os.getcwd()
 
+
 def dress(f, in_root=False):
     #(str,bool) -> str
     """ Transfoms the filename into $PWD/IRPF90_temp/f 
@@ -65,9 +66,7 @@ def create_build_touches(l_irp_m, ninja):
 
     result_ninja = '\n'.join([
         "build {target_o}: compile_fortran_{irp_id} {target_F90} | {list_of_modules_irp}",
-        "   short_in = {short_target_F90}", 
-        "   short_out = {short_target_o}",
-        ""
+        "   short_in = {short_target_F90}", "   short_out = {short_target_o}", ""
     ])
 
     result_make = '\n'.join([
@@ -96,15 +95,12 @@ def create_build_archive(l_irp_o, l_usr_o_wo_main, l_ext_o, l_irp_sup_o, ninja=T
 
     list_of_object = ' '.join(l_irp_o + l_usr_o_wo_main + l_ext_o + l_irp_sup_o)
 
-    result_ninja = '\n'.join([
-        "build {lib}: archive_{irp_id} {list_of_object}",
-        "   short_out = {short_lib}",
-        ""])
+    result_ninja = '\n'.join(
+        ["build {lib}: archive_{irp_id} {list_of_object}", "   short_out = {short_lib}", ""])
 
     result_make = '\n'.join([
-        "{lib}: {list_of_object}",
-        '\t@printf "Archive: {short_lib}\\n"',
-        "\t@$(AR) cr $@ $^", ""])
+        "{lib}: {list_of_object}", '\t@printf "Archive: {short_lib}\\n"', "\t@$(AR) cr $@ $^", ""
+    ])
 
     result = result_ninja if ninja else result_make
     return result.format(**locals())
@@ -125,7 +121,8 @@ def create_build_link(t, l_irp_m, l_usr_m, l_ext_m, ninja=True):
     basename = os.path.basename(filename)
     if basename != progname:
         from util import logger
-        logger.info('program-name `{0}` != file-name `{1}` (using file-name for now...)'.format(progname,basename))
+        logger.info('program-name `{0}` != file-name `{1}` (using file-name for now...)'.format(
+            progname, basename))
 
     target = dress(filename, in_root=True)
     short_target = filename
@@ -138,14 +135,13 @@ def create_build_link(t, l_irp_m, l_usr_m, l_ext_m, ninja=True):
 
     result_ninja = '\n'.join([
         "build {target}: link_{irp_id} {target_o} {irp_lib} | {list_of_module}",
-        "   short_out = {short_target}", 
-        ""])
+        "   short_out = {short_target}", ""
+    ])
 
     result_make = '\n'.join([
-        "{target}:{target_o} {irp_lib} | {list_of_module}",
-        '\t@printf "Link: {short_target}\\n"',
-        "\t@$(FC) $^ $(LIB) -o $@",
-         ""])
+        "{target}:{target_o} {irp_lib} | {list_of_module}", '\t@printf "Link: {short_target}\\n"',
+        "\t@$(FC) $^ $(LIB) -o $@", ""
+    ])
 
     result = result_ninja if ninja else result_make
 
@@ -186,10 +182,10 @@ def create_build_compile(t, l_module, l_ext_modfile=[], ninja=True):
 
     # Expensive and stupid. We can create a dict to do the loockup only once 
     for m in t.needed_modules_usr:
-                # m is name
-                for x in l_module:
-                        if m in x.gen_mod and x.filename != t.filename:
-                                needed_modules.append("%s.irp.o" %  x.filename)
+        # m is name
+        for x in l_module:
+            if m in x.gen_mod and x.filename != t.filename:
+                needed_modules.append("%s.irp.o" % x.filename)
 
     from util import uniquify
     needed_modules = uniquify(needed_modules)
@@ -206,7 +202,7 @@ def create_build_compile(t, l_module, l_ext_modfile=[], ninja=True):
         target_module_F90 = dress(short_target_module_F90)
         needed_modules_irp += [target_module_o]
 
-    list_of_modules     = ' '.join(map(dress, needed_modules))
+    list_of_modules = ' '.join(map(dress, needed_modules))
     list_of_modules_irp = ' '.join(map(dress, needed_modules_irp))
 
     inline_include = True
@@ -217,27 +213,23 @@ def create_build_compile(t, l_module, l_ext_modfile=[], ninja=True):
     else:
         #The include have already by included
         list_of_includes = ' '
-  
+
     l_build = [
         "build {target_o}: compile_fortran_{irp_id} {target_F90} | {list_of_includes}  {list_of_modules} {list_of_modules_irp}",
-        "   short_in  = {short_target_F90}",
-        "   short_out = {short_target}",
-        ""
+        "   short_in  = {short_target_F90}", "   short_out = {short_target}", ""
     ]
 
     l_build_make = [
         "{target_o}: {target_F90} | {list_of_includes}  {list_of_modules} {list_of_modules_irp}",
-        '\t@printf "F: {short_target_F90} -> {short_target}\\n"',
-        "\t@$(FC) $(FCFLAGS) -c $^ -o $@", ""
+        '\t@printf "F: {short_target_F90} -> {short_target}\\n"', "\t@$(FC) $(FCFLAGS) -c $^ -o $@",
+        ""
     ]
 
     # No need of module when compiling the irp_module.
     if t.has_irp_module:
         l_build += [
             "build {target_module_o}: compile_fortran_{irp_id} {target_module_F90} | {list_of_includes} {list_of_modules} ",
-            "   short_in  = {short_target_module_F90}",
-        "   short_out = {short_target_module_o}",
-        ""
+            "   short_in  = {short_target_module_F90}", "   short_out = {short_target_module_o}", ""
         ]
 
         l_build_make += [
@@ -250,7 +242,7 @@ def create_build_compile(t, l_module, l_ext_modfile=[], ninja=True):
     return '\n'.join(l_cur).format(**locals())
 
 
-def create_build_remaining(f,ninja):
+def create_build_remaining(f, ninja):
     """
     Create the build command for the remaining file f. f is a file name (str).
     """
@@ -271,108 +263,55 @@ def create_build_remaining(f,ninja):
 
     if extension.lower() in ['f', 'f90']:
         result = ["build {target_o}: compile_fortran_{irp_id} {target_i}"]
+        result_make = [
+            '{target_o}: {target_i}', '\t@printf "F: {short_target_o} -> {short_target_i}\\n"',
+            "\t@$(FC) $(FCFLAGS) -c $^ -o $@", ""
+        ]
+
     elif extension.lower() in ['c']:
         result = ["build {target_o}: compile_c_{irp_id} {target_i}"]
     elif extension.lower() in ['cxx', 'cpp']:
         result = ["build {target_o}: compile_cxx_{irp_id} {target_i}"]
 
     result += ["   short_in  = {short_target_i}", "   short_out = {short_target_o}", ""]
-    return '\n'.join(result).format(**locals())
+
+    result_final = result if ninja else result_make
+
+    return '\n'.join(result_final).format(**locals())
 
 
-def create_makefile(d_flags,d_var,irpf90_flags,ninja=True):
+def create_makefile(d_flags, d_var, irpf90_flags, ninja=True):
 
-    result = ["IRPF90= irpf90",
-              "IRPF90FLAGS= %s" % irpf90_flags,
-              "BUILD_SYSTEM= %s" % ('ninja' if ninja else 'make'),
-              ""]
+    d = {'BUILD_SYSTEM': 'ninja' if ninja else 'make',
+	 'irpf90_flags': irpf90_flags}
 
-    # Export all the env variable used by irpf90
-    result += ['.EXPORT_ALL_VARIABLES:',
-                '',
-                '\n'.join("{0} = {1}".format(k, v) for k, v in sorted(d_flags.iteritems())),
-                '',
-                '\n'.join("{0} = {1}".format(k, ' '.join(v)) for k, v in sorted(d_var.iteritems())),
-                '']
-
-    result += [ r'# Dark magic below modify with caution!',
-                r'# "You are Not Expected to Understand This"',
-                r"#                     .",
-                r"#           /^\     .",
-                r'#      /\   "V",',
-                r"#     /__\   I      O  o",
-                r"#    //..\\  I     .",
-                r"#    \].`[/  I",
-                r"#    /l\/j\  (]    .  O",
-                r"#   /. ~~ ,\/I          .",
-                r"#   \\L__j^\/I       o",
-                r"#    \/--v}  I     o   .",
-                r"#    |    |  I   _________",
-                r"#    |    |  I c(`       ')o",
-                r"#    |    l  I   \.     ,/",
-                r"#  _/j  L l\_!  _//^---^\\_",
-                r""]
-
-    result += ["",
-              "ifeq ($(BUILD_SYSTEM),ninja)",
-              "\tBUILD_FILE=IRPF90_temp/build.ninja",
-              "\tIRPF90FLAGS += -j",
-              "else ifeq ($(BUILD_SYSTEM),make)",
-              "\tBUILD_FILE=IRPF90_temp/build.make",
-              "else",
-              "DUMMY:",
-              "\t$(error 'Wrong BUILD_SYSTEM: $(BUILD_SYSTEM)')",
-              "endif"]
-
-    result += ["",
-               "define run_and_touch",
-               "        $(BUILD_SYSTEM) -C $(dir $(1) ) -f $(notdir $(1) ) $(addprefix $(CURDIR)/, $(2)) && touch $(2)",
-               "endef",
-               "",
-               "EXE := $(shell egrep -ri '^\s*program' *.irp.f | cut -d'.' -f1)",
-               "",
-               ".PHONY: all",
-               "",
-               "all: $(BUILD_FILE)",
-               "\t$(call run_and_touch, $<, $(EXE))",
-               "",
-               ".NOTPARALLEL: $(EXE)",
-               "$(EXE): $(BUILD_FILE)",
-               "\t$(call run_and_touch, $<, $(EXE))",
-               
-               "$(BUILD_FILE): $(shell find .  -maxdepth 2 -path ./IRPF90_temp -prune -o -name '*.irp.f' -print)",
-               "\t$(IRPF90) $(IRPF90FLAGS)",
-               "",
-               "clean:",
-               '\trm -f -- $(BUILD_FILE) $(EXE)'
-               '\t$(shell find IRPF90_temp -type f \\( -name "*.o" -o -name "*.mod" -name "*.a" \\)  -delete;)',
-               "veryclean: clean",
-               "\trm -rf IRPF90_temp/ IRPF90_man/ irpf90_entities dist tags"]
-
+    d.update(d_flags)
+    d.update(d_var)
+    
     import util
-    data = '%s\n' % '\n'.join(result) 
-    util.lazy_write_file('Makefile',data,conservative=True)
+    str_ = util.ashes_env.render('general.make', d)
+    util.lazy_write_file('Makefile', str_, conservative=True)
+
 
 def create_make_all_clean(l_main):
-        # 
-        '''Create the ALL and CLEAN target of Makefile
+    # 
+    '''Create the ALL and CLEAN target of Makefile
 
         Note: Portability doesn't mater. -delete is maybe not posix
               but  -exec rm {} + is far more ugly!
         
          '''
 
-        l_executable =' '.join(dress( t.filename, in_root=True) for t in l_main)
+    l_executable = ' '.join(dress(t.filename, in_root=True) for t in l_main)
 
-        output = [".PHONY : all",
-                  "all: {l_executable}",
-                  "",
-                  ".PHONY: clean",
-                  "clean:", 
-                  '\tfind . -type f \( -name "*.o" -o -name "*.mod" \)  -delete; rm -f {l_executable} --'
-                  ""]
+    output = [
+        ".PHONY : all", "all: {l_executable}", "", ".PHONY: clean", "clean:",
+        '\tfind . -type f \( -name "*.o" -o -name "*.mod" \)  -delete; rm -f {l_executable} --'
+        ""
+    ]
 
-        return [ '\n'.join(output).format(**locals())]
+    return ['\n'.join(output).format(**locals())]
+
 
 def create_var_and_rule(d_flags, ninja):
 
@@ -383,59 +322,49 @@ def create_var_and_rule(d_flags, ninja):
 
         # Rules
         t = [
-            "rule compile_fortran_{irp_id}",
-            "  command = $FC $FCFLAGS -c $in -o $out",
-            "  description = F   : $short_in -> $short_out", 
-            "",
-            "rule compile_c_{irp_id}",
+            "rule compile_fortran_{irp_id}", "  command = $FC $FCFLAGS -c $in -o $out",
+            "  description = F   : $short_in -> $short_out", "", "rule compile_c_{irp_id}",
             "  command = $CC $CFLAGS -c $in -o $out",
-            "  description = C   : $short_in -> $short_out",
-            "",
-            "rule compile_cxx_{irp_id}",
+            "  description = C   : $short_in -> $short_out", "", "rule compile_cxx_{irp_id}",
             "  command = $CXX $CXXFLAGS -c $in -o $out",
-            "  description = C++ :  $short_in -> $short_out",
-            "",
-            "rule archive_{irp_id}",
-            "  command = $AR cr $out $in",
-            "  description = Archive: $short_out",
-            "",
-            "rule link_{irp_id}",
-            "  command = $FC $FCFLAGS $in $LIB -o $out",
-            "  description = Link: $short_out",
-            ""
+            "  description = C++ :  $short_in -> $short_out", "", "rule archive_{irp_id}",
+            "  command = $AR cr $out $in", "  description = Archive: $short_out", "",
+            "rule link_{irp_id}", "  command = $FC $FCFLAGS $in $LIB -o $out",
+            "  description = Link: $short_out", ""
         ]
 
         output += ['\n'.join(t).format(irp_id=irpf90_t.irp_id, **d_flags)]
 
     return output
 
-
 # Environment variables
 
 d_default = {
-        "FC": "gfortran",
-        "FCFLAGS": "-O2",
-        "AR": "ar",
-        "RANLIB": " ranlib",
-        "CC": "gcc",
-        "CFLAGS": "-O2",
-        "CXX": "g++",
-        "CXXFLAGS": "-O2",
-        "LIB": ""}
+    "FC": "gfortran",
+    "FCFLAGS": "-O2",
+    "AR": "ar",
+    "RANLIB": " ranlib",
+    "CC": "gcc",
+    "CFLAGS": "-O2",
+    "CXX": "g++",
+    "CXXFLAGS": "-O2",
+    "LIB": ""
+}
 
 d_flags = dict()
 for k, v in d_default.iteritems():
-        d_flags[k] = os.environ[k] if k in os.environ else v
+    d_flags[k] = os.environ[k] if k in os.environ else v
 
 include_dir = ' ' + ' '.join(["-I %s" % (i) for i in command_line.include_dir])
 
 d_var = dict()
 for k in ['SRC', 'OBJ']:
-       d_var[k] = os.environ[k].split() if k in os.environ else []
+    d_var[k] = os.environ[k].split() if k in os.environ else []
 
 
 def create_generalmakefile(ninja):
-            create_makefile(d_flags,d_var, include_dir,ninja)
+    create_makefile(d_flags, d_var, include_dir, ninja)
+
 
 def run(d_module, ninja):
     #(Dict[str,Module],bool) -> str
@@ -476,7 +405,7 @@ def run(d_module, ninja):
     l_irp_sup_o = ["irp_touches.irp.o"]
     l_irp_sup_s = ["irp_touches.irp.F90"]
 
-    if command_line.do_assert:
+    if command_line.do_debug or command_line.do_assert:
         l_irp_sup_o += ["irp_stack.irp.o"]
         l_irp_sup_s += ["irp_stack.irp.F90"]
 
@@ -484,9 +413,13 @@ def run(d_module, ninja):
         l_irp_sup_o += ["irp_locks.irp.o"]
         l_irp_sup_s += ["irp_locks.irp.F90"]
 
+    if command_line.do_profile or command_line.do_codelet:
+        l_irp_sup_o += ["irp_rdtsc.o"]
+        l_irp_sup_s += ["irp_rdtsc.c"]
+
     if command_line.do_profile:
-        l_irp_sup_o += ["irp_profile.irp.o", "irp_rdtsc.o"]
-        l_irp_sup_s += ["irp_profile.irp.F90", "irp_rdtsc.c"]
+        l_irp_sup_o += ["irp_profile.irp.o"]
+        l_irp_sup_s += ["irp_profile.irp.F90"]
 
     l_irp_sup_o = map(dress, l_irp_sup_o)
     l_irp_sup_s = map(dress, l_irp_sup_s)
@@ -515,7 +448,7 @@ def run(d_module, ninja):
     for m in l_mod:
         output.append(create_build_compile(m, l_mod, l_ext_m, ninja))
 
-    output.append(create_build_touches(l_irp_m,ninja))
+    output.append(create_build_touches(l_irp_m, ninja))
     # All the objects. Kind of, only need usr without main for the static library
     output.append(create_build_archive(l_irp_o, l_usr_o_wo_main, l_ext_o, l_irp_sup_o, ninja))
 
@@ -524,13 +457,13 @@ def run(d_module, ninja):
         output.append(create_build_link(i, l_irp_m, l_usr_m, l_ext_m, ninja))
 
     # Remaining files
-    for i in l_irp_sup_s[1:]+l_ext_s:
+    for i in l_irp_sup_s[1:] + l_ext_s:
         output.append(create_build_remaining(i, ninja))
 
     filename = os.path.join(irpdir, "build.ninja" if ninja else "build.make")
 
     data = '%s\n' % '\n\n'.join(output)
     import util
-    util.lazy_write_file(filename,data,touch=True)
+    util.lazy_write_file(filename, data, touch=True)
 
     return

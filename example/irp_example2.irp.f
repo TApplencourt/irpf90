@@ -1,6 +1,6 @@
 program irp_example2
   print *, "Example 2"
-  print *, 't = ', t
+  print *, 'v = ', v
 
   IRP_WRITE t
 
