@@ -27,5 +27,5 @@ END_PROVIDER
 
 INTEGER function fu(x,y)
   INTEGER, INTENT(in) :: x,y
-  fu = int(x+y+1+3)
+  fu = x+y+1
 END FUNCTION

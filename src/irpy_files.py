@@ -294,7 +294,7 @@ class Irpy_comm_world(object):
         from util import lazy_write_file
         from util import ashes_env
 
-        str_ = ashes_env.render('irp_stack.F90', {
+        str_ = ashes_env.render('irp_stack.f90', {
             'do_debug': command_line.do_debug,
             'do_openmp': command_line.do_openmp,
             'do_memory': command_line.do_memory
@@ -318,6 +318,6 @@ class Irpy_comm_world(object):
         from util import lazy_write_file
         from util import ashes_env
 
-        str_ = ashes_env.render('irp_lock.F90', {'entity': sorted(self.d_entity)})
+        str_ = ashes_env.render('irp_lock.f90', {'entity': sorted(self.d_entity)})
         filename = os.path.join(irpf90_t.irpdir, 'irp_locks.irp.F90')
         lazy_write_file(filename, str_)

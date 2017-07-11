@@ -215,12 +215,12 @@ def create_build_compile(t, l_module, l_ext_modfile=[], ninja=True):
         list_of_includes = ' '
 
     l_build = [
-        "build {target_o}: compile_fortran_{irp_id} {target_F90} | {list_of_includes}  {list_of_modules} {list_of_modules_irp}",
+        "build {target_o}: compile_fortran_{irp_id} {target_F90} | ../Makefile {list_of_includes}  {list_of_modules} {list_of_modules_irp}",
         "   short_in  = {short_target_F90}", "   short_out = {short_target}", ""
     ]
 
     l_build_make = [
-        "{target_o}: {target_F90} | {list_of_includes}  {list_of_modules} {list_of_modules_irp}",
+        "{target_o}: {target_F90} | ../Makefile {list_of_includes}  {list_of_modules} {list_of_modules_irp}",
         '\t@printf "F: {short_target_F90} -> {short_target}\\n"', "\t@$(FC) $(FCFLAGS) -c $^ -o $@",
         ""
     ]
@@ -413,9 +413,13 @@ def run(d_module, ninja):
         l_irp_sup_o += ["irp_locks.irp.o"]
         l_irp_sup_s += ["irp_locks.irp.F90"]
 
+    if command_line.do_profile or command_line.do_codelet:
+        l_irp_sup_o += ["irp_rdtsc.o"]
+        l_irp_sup_s += ["irp_rdtsc.c"]
+
     if command_line.do_profile:
-        l_irp_sup_o += ["irp_profile.irp.o", "irp_rdtsc.o"]
-        l_irp_sup_s += ["irp_profile.irp.F90", "irp_rdtsc.c"]
+        l_irp_sup_o += ["irp_profile.irp.o"]
+        l_irp_sup_s += ["irp_profile.irp.F90"]
 
     l_irp_sup_o = map(dress, l_irp_sup_o)
     l_irp_sup_s = map(dress, l_irp_sup_s)

@@ -59,12 +59,12 @@ SUBROUTINE reader_{name}(irp_num)
     END DO
 
     {#group_entity}
-       OPEN(UNIT=irp_iunit,file='irpf90_{name}_'//trim(irp_num),FORM='FORMATTED',STATUS='UNKNOWN',ACTION='WRITE')
+       OPEN(UNIT=irp_iunit,file='irpf90_{name}_'//trim(irp_num),FORM='FORMATTED',STATUS='OLD',ACTION='READ')
        READ(irp_iunit,*) {name}{dim}
        CLOSE(irp_iunit)
     {/group_entity}
    
-   CALL touch_{name}
+   CALL touch_{same_as}
    {?do_debug} CALL irp_leave(irp_here) {/do_debug}
 
 END SUBROUTINE reader_{name}
