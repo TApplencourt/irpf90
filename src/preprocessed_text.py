@@ -121,7 +121,7 @@ def get_canonized_text(text_lower):
 
 
 def get_type(i, filename, line, line_lower, line_lower_canonized, is_doc):
-    # ( int,str,str,str,str,bool) -> Irpf90_t
+    # ( int,str,str,str,str,bool) -> Irpf90_t	
     '''Find the type of a text line'''
 
     line = line.rstrip()
@@ -204,8 +204,8 @@ def save_and_execute(irpdir, scriptname, code, interpreter):
     ''' Save the script in irpdir/scriptname and Execute it
 
     Note:
-        The script are executed in the orginal directory of the .irp.f (aka '..')
-        and this directory is added to PYTHONPATH.
+	The script are executed in the orginal directory of the .irp.f (aka '..')
+	and this directory is added to PYTHONPATH.
     '''
 
     irpdir_scriptname = os.path.abspath(os.path.join(irpdir, scriptname))
@@ -418,7 +418,7 @@ def remove_comments(text, form):
     '''Remove all comments
 
     Note:
-        This function is impure
+	This function is unpur
     '''
     result = []
 
@@ -800,8 +800,8 @@ def process_old_style_do(text):
 ######################################################################
 def change_single_line_ifs(text):
     # List[Line] -> List[Line]
-    '''Changes: `if (test) result`
-        into
+    '''Changes:	`if (test) result`
+	into
                 `if (test) then
                     result
                  endif`'''

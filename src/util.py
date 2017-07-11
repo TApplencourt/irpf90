@@ -73,13 +73,13 @@ def parmap(f, it, parallel=False):
     '''Parallel version of the std map function
     
     The parallel flag is set to togle the // execusion
-        
+	
     Note:
-        - We try to use the Mulprocesses map is possible else we use our own
-        - The order of the sequence if concerved
+	- We try to use the Mulprocesses map is possible else we use our own
+	- The order of the sequence if concerved
         - Will use all the processesor possible
-        - We return a List
-        - The traceback is loose if an error occur but a Exception is raise.
+	- We return a List
+	- The traceback is loose if an error occur but a Exception is raise.
     '''
 
     if not parallel:
@@ -95,12 +95,12 @@ def parmap(f, it, parallel=False):
     # https://docs.python.org/2/library/pickle.html#what-can-be-pickled-and-unpickled
     #from cPickle import PicklingError
     #try:
-    #    p = multiprocessing.Pool(nproc)
-    #    l_res = p.map(f, it,nproc)
+    #	 p = multiprocessing.Pool(nproc)
+    #  	 l_res = p.map(f, it,nproc)
     #except PicklingError:
-    #   pass    
+    #	pass	
     #else:
-    #   return l_res
+    #	return l_res
 
     # ~!~!~!
     # Parallelisation By Us
@@ -129,10 +129,10 @@ def parmap(f, it, parallel=False):
         '''Read a task from q_in, excute it, and store it in q_out
 
        Note:
-          - We use 'F' and not 'f'. 
-          - The for loop will break when stop_contition occur
-          - We get, and put an idx to allow the possibility of ordering afterward
-          - We store any exeception, to raise her afterward
+	  - We use 'F' and not 'f'. 
+	  - The for loop will break when stop_contition occur
+	  - We get, and put an idx to allow the possibility of ordering afterward
+	  - We store any exeception, to raise her afterward
        '''
         for i, x in iter(q_in.get, stop_condition):
 
@@ -192,7 +192,7 @@ def cached_file(filename, text):
     '''Check if file locatte at filename containt the same data as text
 
     Return:
-        True if data is the same, false otherwise
+	True if data is the same, false otherwise
     '''
 
     def digest(data):
@@ -213,7 +213,7 @@ def lazy_write_file(filename, text, conservative=False, touch=False):
     '''Write data lazily in filename location.
 
     Note:
-        If convervative is set, we don't overwrite.
+	If convervative is set, we don't overwrite.
     '''
 
     if not os.path.exists(filename) or not cached_file(filename, text) and not conservative:
@@ -286,7 +286,7 @@ def flatten(l_2d):
     '''Construct a copy of the 2d list collapsed into one dimension.
 
     Note:
-        -  We collapse in a C-style fashion (row_major).
+	-  We collapse in a C-style fashion (row_major).
     '''
 
     return [item for l_1d in l_2d for item in l_1d]
@@ -322,9 +322,9 @@ def build_dim(l_dim, colons=False):
     '''Contruct a valid fortran90 array dimension code from a list dimension
 
     Exemple:
-        [4,8] -> (4,8) if not colons
-        [4,8] -> (:,:) if colons
-        
+	[4,8] -> (4,8) if not colons
+	[4,8] -> (:,:) if colons
+	
     '''
     if not l_dim:
         return ""

@@ -216,15 +216,15 @@ def move_to_top_list(text, it):
 
     Note:
         - The permutation neeed to be done following `it` order
-        - We can have `nested` subroutine / Function. (Because of interface)
-        - This function is called way to much. Is need to be efficient
-                      - This function is Impure
-                      - One pass over `text`
+	- We can have `nested` subroutine / Function. (Because of interface)
+	- This function is called way to much. Is need to be efficient
+                      - This function is Unpure
+     		      - One pass over `text`
 
 
    NB:
-        - I am not really proud of the Sentinel value for the deleted,
-          but I waste already so much time on more cleaver but not working solution...
+	- I am not really proud of the Sentinel value for the deleted,
+	  but I waste already so much time on more cleaver but not working solution...
    '''
 
     assert set(it).issubset([NoDep, Declaration, Implicit, Use, Cont_provider])
@@ -284,7 +284,7 @@ def move_interface(parsed_text, s_type=(Use, Implicit, Declaration, Subroutine, 
     '''Move everything containt into 'interface' below the first instance of s_type who preced it
 
    Note:
-        = This function is impure
+	= This function is unpur
    '''
 
     # Get the born of the interface	
@@ -311,7 +311,7 @@ def build_sub_needs(parsed_text, d_subroutine):
     '''Set the needs, and provides arguements of Routine present in parsed_text
     
     Note:
-        This function is impure
+	This function is unpure	
     '''
 
     l_buffer = []

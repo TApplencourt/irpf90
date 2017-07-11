@@ -42,12 +42,12 @@ class Entity(object):
         # (list[str], str, int, Irpy_comm_world)
         '''Instantiate the object. 
 
-        Args:
-                text: List of lines between BEGIN_PROVIDER and END_PROVIDER included
-                int:  An unique int id (usefull when profilling)
-                name: The name of the provider defined after the chosen BEGIN_PROVIDER statement
-                comm_world: A object to communicate we the external world.
-        '''
+	Args:
+		text: List of lines between BEGIN_PROVIDER and END_PROVIDER included
+		int:  An unique int id (usefull when profilling)
+		name: The name of the provider defined after the chosen BEGIN_PROVIDER statement
+		comm_world: A object to communicate we the external world.
+	'''
 
         assert type(text) == list
         assert len(text) > 0
@@ -69,8 +69,8 @@ class Entity(object):
         # () -> Dict[str,Entity]
         '''Create an alias to the global dictionary of Entity.
 
-        Note: Be aware of the possiblity of Cyclic Dependency.
-        '''
+	Note: Be aware of the possiblity of Cyclic Dependency.
+	'''
         return self.comm_world.d_entity
 
     @irpy.lazy_property
@@ -78,9 +78,9 @@ class Entity(object):
         # () -> Tuple[str, Parsed_text]
         '''Create an alias to the global tuple for parsed text
 
-        Note: self.comm_world.t_filename_parsed_text need d_entity. 
-                Be aware of the possibility of Cyclic Dependency
-        '''
+	Note: self.comm_world.t_filename_parsed_text need d_entity. 
+		Be aware of the possibility of Cyclic Dependency
+	'''
         return self.comm_world.t_filename_parsed_text
 
     @irpy.lazy_property
@@ -104,9 +104,9 @@ class Entity(object):
 	Exemple:
 		BEGIN_PROVIDER [pi, double precision] &
                 BEGIN_PROVIDER [e, double preision]
-
-                return True for 'pi' and False for 'e'
-        '''
+	
+		return True for 'pi' and False for 'e'
+	'''
         return self.name == self.same_as
 
     @irpy.lazy_property
@@ -114,12 +114,12 @@ class Entity(object):
         # () -> Line
         '''Find the declaration statement associated with the name of the provider
 
-        Exemple:
-                BEGIN_PROVIDER [pi, double precision] &
-                BEGIN_PROVIDER [e, double preision]
+	Exemple:
+		BEGIN_PROVIDER [pi, double precision] &
+		BEGIN_PROVIDER [e, double preision]
 
-                if self.name == e, will return BEGIN_PROVIDER [e, double preision]
-        '''
+		if self.name == e, will return BEGIN_PROVIDER [e, double preision]
+	'''
 
         d = self.d_type_lines
         return next(line for _, line in d[Begin_provider] + d[Cont_provider]
@@ -247,16 +247,16 @@ class Entity(object):
         # () -> List[str]
         '''Extract the dimension of the needed array in a form of list of variable name
 
-        Exemple:
-                BEGIN_PROVIDER [real, ao_num ]
-                -> []
+	Exemple:
+		BEGIN_PROVIDER [real, ao_num ]
+		-> []
 
-                BEGIN_PROVIDER [ real, ao_oneD_p, (ao_num) ]
-                -> ['ao_num']
+		BEGIN_PROVIDER [ real, ao_oneD_p, (ao_num) ]
+		-> ['ao_num']
 
-                BEGIN_PROVIDER [ real, ao_oneD_prim_p, (ao_num,ao_prim_num_max) ]
-                -> ['ao_num', 'ao_prim_num_max']
-        '''
+		BEGIN_PROVIDER [ real, ao_oneD_prim_p, (ao_num,ao_prim_num_max) ]
+		-> ['ao_num', 'ao_prim_num_max']
+	'''
 
         line = self.prototype.text.split('!')[0]
         buffer = line.replace(']', '').split(',', 2)
@@ -444,7 +444,7 @@ class Entity(object):
         # Get the raw text for the builder
         # ~#~#~#~#~#
 
-        #Next return the first element of the iterator
+        #Next return the first element of the iterator	
         ps_text = next(text for filename, text in self.cm_t_filename_parsed_text
                        if self.prototype.filename[0].startswith(filename))
         begin = next(i for i, (_, line) in enumerate(ps_text)

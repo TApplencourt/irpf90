@@ -61,9 +61,9 @@ endif
 EXE := $(shell egrep -ri '^\s*program' *.irp.f | cut -d'.' -f1)
 ARCH = $(addprefix $(CURDIR)/,IRPF90_temp/irpf90.a)
 
-.PHONY: clean all
+.PHONY: clean all 
 
-all: $(EXE)
+all: $(EXE) 
 
 define run
 	$(BUILD_SYSTEM_stripped) -C $(dir $(BUILD_FILE) ) -f $(notdir $(BUILD_FILE) ) $(1)
@@ -89,6 +89,6 @@ $(BUILD_FILE): $(shell find .  -maxdepth 2 -path ./IRPF90_temp -prune -o -name '
 clean:
 	rm -f -- $(BUILD_FILE) $(EXE) 
 
-veryclean: clean
+veryclean: clean 
 	rm -rf IRPF90_temp/ IRPF90_man/ irpf90_entities dist tags
 
