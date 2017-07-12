@@ -13,27 +13,25 @@ SUBROUTINE  allocate_{name}
 
   alloc = ALLOCATED({name})
 
-  IF ( alloc .AND.( &
-     {#l_dim}
-     ( SIZE({name},{rank}) == {value} ) {@sep}.OR.{/sep} &
-     {/l_dim})) THEN
+  IF (alloc) THEN
+  
+      IF ({#l_dim}
+      ( SIZE({name},{rank}) == {value} ) {@sep}.OR.{/sep} &
+       {/l_dim}) THEN
+              RETURN
+      ELSE
+         {?do_memory} PRINT*, irp_here//': Deallocated {name}' {/do_memory}
+         DEALLOCATE({name},STAT=irp_err)
 
-     RETURN
-  ELSE IF (.NOT.alloc) THEN
-      GO TO 666
-  ELSE 
-     {?do_memory} PRINT*, irp_here//': Deallocated {name}' {/do_memory}
-     DEALLOCATE({name},STAT=irp_err)
+         IF (irp_err /= 0) THEN
+             PRINT*, irp_here//': Deallocation failed: {name}'
+             PRINT*,' size: {dim}'
+         ENDIF
+          
+      ENDIF
 
-     IF (irp_err /= 0) THEN
-          PRINT*, irp_here//': Deallocation failed: {name}'
-          PRINT*,' size: {dim}'
-     ENDIF
+   ENDIF
 
-     GO TO 666
-  ENDIF
-
-  666 CONTINUE
   {?do_memory} PRINT*, irp_here//': Allocate {name} ({dim})'{/do_memory}
 
   {^do_corray}
